@@ -7,3 +7,10 @@ This code was initially written to test various HSMs for correctness and perform
 the code is to allow anyone to look at our methodology and improve upon it.
 
 Obligatory reading: https://zedshaw.com/archive/programmers-need-to-learn-statistics-or-i-will-kill-them-all/
+
+# running
+
+    mvn package
+    java -jar target/chronostream-1.0-SNAPSHOT.jar server
+
+and then open [http://localhost:8080/index](http://localhost:8080/index)

@@ -1,0 +1,115 @@
+<html>
+<head>
+  <style>
+    .chart div {
+      font: 10px sans-serif;
+      background-color: steelblue;
+      text-align: right;
+      padding: 3px;
+      margin: 1px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<h1>AES/GCM/NoPadding</h1>
+<p></p><a href="#" onclick="run('aes-gcm-nopadding', 'bouncyCastle'); return false;">bouncycastle</a> |
+<a href="api/run?test=aes-gcm-nopadding&provider=java">native</a> |
+<a href="api/run?test=aes-gcm-nopadding&provider=hsm1">hsm1</a> |
+<a href="api/run?test=aes-gcm-nopadding&provider=hsm2">hsm2</a></p>
+
+<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+<div class="chart" id="aes-gcm-nopadding-d3"></div>
+<p>Status: <span id="aes-gcm-nopadding-status"></span></p>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script type="text/javascript" src="http://canvasjs.com/assets/script/canvasjs.min.js"></script>
+<script>
+  function run(test, provider) {
+    var status = $('#' + test + '-status');
+    status.text("starting...");
+
+    // make an Ajax request to start a test.
+    $.ajax({
+      url: '/tests/start?test='+test+'&provider='+provider
+    }).done(data => {
+      console.log(data)
+      status.text("started.")
+
+      // continuously grab the results and render them in D3
+      var arr = []
+      var chart = new CanvasJS.Chart("chartContainer", {
+        title:{
+          text: "the chart"
+        },
+        axisY: {maximum: 0},
+        data: [{
+            // Change type to "doughnut", "line", "splineArea", etc.
+            type: "column",
+            dataPoints: []
+          }]
+      });
+      results(status, chart, data.id, arr)
+  })
+    .fail(err => {
+      console.error(err);
+      status.text(err.status + ": " + err.statusText)
+    });
+  }
+
+  function results(status, chart, id, arr) {
+    window.Alok = arr
+
+    $.ajax({
+      url: '/tests/results?id='+id+'&offset='+arr.length
+    }).done(data => {
+      if (data.exception) {
+        console.error(data.exception)
+      }
+      for (var i=0; i<data.startEndTimes.length; i++) {
+        var v = data.startEndTimes[i].endTime - data.startEndTimes[i].startTime;
+        arr.push(v);
+        chart.options.data[0].dataPoints.push({x: arr.length, y: v});
+        if (v > chart.options.axisY.maximum) {
+          chart.options.axisY.maximum = v;
+        }
+        if (chart.options.data[0].dataPoints.length > 20000) {
+          chart.options.data[0].dataPoints.shift();
+        }
+      }
+      chart.render()
+
+      // get more data
+      if ((data.total == 0) || (arr.length < data.total)) {
+        results(status, chart, id, arr);
+      } else {
+        plotPercentile(chart, arr)
+        status.text("done.")
+      }
+    })
+    .fail(err => {
+      console.error(err)
+      status.text(err.status + ": " + err.statusText)
+    })
+  }
+
+  function plotPercentile(chart, arr) {
+    var counts = {}
+    for (var i=0; i<arr.length; i++) {
+      if (counts[arr[i]] == undefined) {
+        counts[arr[i]] = 0;
+      }
+      counts[arr[i]]++;
+    }
+    var r = [];
+    for (var i in counts) {
+      r.push({x: i, y: counts[i]})
+    }
+    chart.options.axisY.maximum = null;
+    chart.options.axisX = {maximum: i};
+    chart.options.data[0].dataPoints = r;
+    chart.render()
+  }
+</script>
+</body>
+</html>
