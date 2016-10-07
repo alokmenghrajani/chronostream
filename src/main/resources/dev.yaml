@@ -1,2 +1,11 @@
-cryptoProvider: "BouncyCastleProvider"
-
+crypto:
+  - name: "BouncyCastle"
+    storeType: "BKS"
+    provider: "org.bouncycastle.jce.provider.BouncyCastleProvider"
+    password: "testtest"
+    keyStore: "bouncycastle.bks"
+  - name: "JCE"
+    storeType: "JCEKS"
+    provider: "com.sun.crypto.provider.SunJCE"
+    password: "testtest2"
+    keyStore: "jce.jceks"

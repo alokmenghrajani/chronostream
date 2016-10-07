@@ -39,6 +39,11 @@
               </excludes>
             </filter>
           </filters>
+          <artifactSet>
+            <excludes>
+              <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
+            </excludes>
+          </artifactSet>
         </configuration>
       </plugin>
       <plugin>
@@ -107,6 +112,14 @@
       </plugin>
     </plugins>
   </build>
+  <dependencies>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+      <version>1.54</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
   <dependencyManagement>
     <dependencies>
       <dependency>

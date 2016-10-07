@@ -1,8 +1,8 @@
 package chronostream.resources;
 
+import chronostream.core.Crypto;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableList;
-import chronostream.core.BouncyCastle;
 import java.security.Key;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -49,6 +49,13 @@ public class Tests {
     public int id;
   }
 
+
+  Map<String, Crypto> crypto;
+
+  public Tests(Map<String, Crypto> crypto) {
+    this.crypto = crypto;
+  }
+
   @GET
   @Timed
   @Path("start")
@@ -63,8 +70,7 @@ public class Tests {
     }
 
     // Check that the provider exists
-    List<String> providers = ImmutableList.of("bouncyCastle", "java", "hsm1", "hsm2");
-    if (!providers.contains(provider)) {
+    if (!crypto.containsKey(provider)) {
       throw new RuntimeException(format("sorry, invalid provider: %s", provider));
     }
 
@@ -79,7 +85,7 @@ public class Tests {
     testResultMap.put(r.id, result);
 
     // TODO: support various tests
-    new Thread(new AesGcmNoPaddingTest(result, threads)).start();
+    new Thread(new AesGcmNoPaddingTest(crypto.get(provider), result, threads)).start();
 
     return r;
   }
@@ -104,10 +110,12 @@ public class Tests {
   }
 
   private class AesGcmNoPaddingTest implements Runnable {
+    private Crypto crypto;
     private TestResult result;
     private int threads;
 
-    AesGcmNoPaddingTest(TestResult result, int threads) {
+    AesGcmNoPaddingTest(Crypto crypto, TestResult result, int threads) {
+      this.crypto = crypto;
       this.result = result;
       this.threads = threads;
     }
@@ -116,7 +124,7 @@ public class Tests {
       System.out.println(format("Starting AesGcmNoPaddingTest with %d threads", threads));
 
       try {
-        Key key = BouncyCastle.getAesKey();
+        crypto.prepareAesEncryption();
 
         // submit jobs
         final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(threads);
@@ -129,7 +137,7 @@ public class Tests {
         int totalSubmitted = 0;
         while (clock.millis() - start < 10000) {
           if (queue.remainingCapacity() > 0) {
-            executorService.submit(new AesGcmNoPaddingTestJob(clock, result, key));
+            executorService.submit(new AesGcmNoPaddingTestJob(clock, result, crypto));
             totalSubmitted++;
           }
         }
@@ -145,26 +153,23 @@ public class Tests {
   private class AesGcmNoPaddingTestJob implements Runnable {
     private Clock clock;
     private TestResult result;
-    private Key key;
+    private Crypto crypto;
 
-    AesGcmNoPaddingTestJob(Clock clock, TestResult result, Key key) {
+    AesGcmNoPaddingTestJob(Clock clock, TestResult result, Crypto crypto) {
       this.clock = clock;
       this.result = result;
-      this.key = key;
+      this.crypto = crypto;
     }
 
     public void run() {
       try {
-        long start = clock.millis();
-        Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        aesCipher.init(Cipher.ENCRYPT_MODE, key);
-        aesCipher.update("4444444444444444".getBytes());
-        aesCipher.doFinal();
-        long end = clock.millis();
+        long start = System.nanoTime();
+        crypto.doAesEncryption();
+        long end = System.nanoTime();
 
         TestResultJob resultJob = new TestResultJob();
-        resultJob.startTime = start;
-        resultJob.endTime = end;
+        resultJob.startTime = start / 1000;
+        resultJob.endTime = end / 1000;
         result.startEndTimes.add(resultJob);
       } catch (Exception e) {
         // TODO: record this exception!

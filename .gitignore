@@ -1,5 +1,6 @@
 *.class
-bouncycastle.jceks
+bouncycastle.bks
+jce.jceks
 target/
 
 # Mobile Tools for Java (J2ME)
