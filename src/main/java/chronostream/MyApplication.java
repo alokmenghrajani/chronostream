@@ -38,11 +38,6 @@ public class MyApplication extends Application<MyConfiguration> {
         // Initialize the crypto stuff
         Map<String, Crypto> crypto = new HashMap<>();
         try {
-            int maxAllowedKeyLength = getMaxAllowedKeyLength("AES");
-            if (maxAllowedKeyLength <= 128) {
-                System.out.println(format("maxAllowedKeyLength: %d", maxAllowedKeyLength));
-            }
-
             for (CryptoConfig config : configuration.crypto) {
                 crypto.put(config.name, new Crypto(config));
             }

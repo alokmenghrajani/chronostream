@@ -10,54 +10,131 @@
       color: white;
     }
   </style>
+  <script type="text/javascript" src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script type="text/javascript" src="http://canvasjs.com/assets/script/canvasjs.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/babel-core@5.8.38/browser.min.js"></script>
 </head>
 <body>
-<h1>AES/GCM/NoPadding</h1>
-<a href="#" onclick="run('aes-gcm-nopadding', 'BouncyCastle'); return false;">BouncyCastle</a> |
-<a href="#" onclick="run('aes-gcm-nopadding', 'JCE'); return false;">JCE</a>
+
+<div id="form"></div>
+
+<script type="text/babel">
+  // TODO: it would be nice if SetupForm was someone linked to the Crypto class...
+  class CryptoForm extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {algorithms: {}, engines: [], results: []}
+    }
+
+    componentDidMount() {
+      $.ajax({
+        url: '/tests/list'
+      }).done(data => {
+        this.setState(data);
+      }).fail(err => {
+        console.error(err);
+      });
+    }
+
+    render() {
+      var algorithms = []
+      for (var i in this.state.algorithms) {
+        var alg = this.state.algorithms[i];
+        algorithms.push(<option key={i} value={i}>{alg}</option>);
+      }
+
+      var engines = [];
+      for (var i=0; i<this.state.engines.length; i++) {
+        var engine = this.state.engines[i];
+        engines.push(<option key={engine} value={engine}>{engine}</option>);
+      }
+      return <div>
+        <form>
+          <span>algorithm: <select name="algorithm">{algorithms}</select></span>&nbsp;
+          <span>engine: <select name="engine">{engines}</select></span>&nbsp;
+          <span>bytes: <input type="text" name="bytes" defaultValue="10"/></span>&nbsp;
+          <span>iterations: <input type="text" name="iterations" defaultValue="10000"/></span>&nbsp;
+          <span>threads: <input type="text" name="threads" defaultValue="100"/></span>&nbsp;
+          <span><button onClick={e => this.startTest(e)}>start</button></span>
+        </form>
+        <div>
+          {this.state.results}
+        </div>
+      </div>
+    }
+
+    startTest(e) {
+      e.preventDefault();
+
+      // make an Ajax request to start a test.
+      $.ajax({
+        url: '/tests/start?' + $('form').serialize()
+      }).done(data => {
+        var r = this.state.results.slice()
+        r.push(<CryptoResult key={data.id} id={data.id}/>);
+        this.setState({results: r})
+      }).fail(err => {
+        console.error(err);
+        var r = this.state.results.slice()
+        r.push(<b key="1">something failed: {err.status}: {err.statusText}</b>)
+      });
+    }
+  }
+
+  class CryptoResult extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {arr: []}
+    }
+
+    componentDidMount() {
+      // keep fetching data until we have everything
+    }
+
+    render() {
+      if (this.state.arr.length == 0) {
+        return <p>started...</p>;
+      }
+      return <b>here: {this.props.id}</b>
+    }
+  }
+
+  ReactDOM.render(<CryptoForm/>, document.getElementById('form'));
+</script>
 
 <div id="chartContainer" style="height: 300px; width: 100%;"></div>
 <div class="chart" id="aes-gcm-nopadding-d3"></div>
 <p>Status: <span id="aes-gcm-nopadding-status"></span></p>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-<script type="text/javascript" src="http://canvasjs.com/assets/script/canvasjs.min.js"></script>
 <script>
-  function run(test, provider) {
-    var status = $('#' + test + '-status');
-    status.text("starting...");
-
-    // make an Ajax request to start a test.
-    $.ajax({
-      url: '/tests/start?test='+test+'&provider='+provider
-    }).done(data => {
-      console.log(data)
-      status.text("started.")
-
-      // continuously grab the results and render them in D3
-      var arr = []
-      var chart = new CanvasJS.Chart("chartContainer", {
-        title:{
-          text: "the chart"
-        },
-        axisY: {maximum: 0},
-        data: [{
-            // Change type to "doughnut", "line", "splineArea", etc.
-            type: "column",
-            dataPoints: []
-          }]
-      });
-      results(status, chart, data.id, arr)
-  })
-    .fail(err => {
-      console.error(err);
-      status.text(err.status + ": " + err.statusText)
-    });
-  }
+//  function blah() {
+//    // make an Ajax request to start a test.
+//    $.ajax({
+//      url: '/tests/start?' + $('form').serialize()
+//    }).done(data => {
+//      status.text("started.")
+//
+//      // continuously grab the results and render them in D3
+//      var arr = []
+//      var chart = new CanvasJS.Chart("chartContainer", {
+//        title:{
+//          text: "the chart"
+//        },
+//        axisY: {maximum: 0},
+//        data: [{
+//            // Change type to "doughnut", "line", "splineArea", etc.
+//            type: "column",
+//            dataPoints: []
+//          }]
+//      });
+//      window.debugChart = chart;
+//      window.debugArr = arr;
+//      results(status, chart, data.id, arr)
+//  })
+//  }
 
   function results(status, chart, id, arr) {
-    window.Alok = arr
-
     $.ajax({
       url: '/tests/results?id='+id+'&offset='+arr.length
     }).done(data => {
@@ -92,19 +169,27 @@
   }
 
   function plotPercentile(chart, arr) {
-    var counts = {}
+    // find the min/max values. We'll then bucket the results
+    var min=0, max=0;
     for (var i=0; i<arr.length; i++) {
-      if (counts[arr[i]] == undefined) {
-        counts[arr[i]] = 0;
-      }
-      counts[arr[i]]++;
+      min = (min < arr[i]) ? min : arr[i];
+      max = (max > arr[i]) ? max : arr[i];
     }
+
     var r = [];
-    for (var i in counts) {
-      r.push({x: i, y: counts[i]})
+    var bucket_size = (max - min) / 20;
+    for (var i=min; i<max; i+=bucket_size) {
+      var y = 0;
+      for (var j=0; j<arr.length; j++) {
+        if ((arr[j] >= i) && (arr[j] < (i+bucket_size))) {
+          y++;
+        }
+      }
+      r.push({x: i, y: y/arr.length});
     }
+
     chart.options.axisY.maximum = null;
-    chart.options.axisX = {maximum: i};
+    chart.options.axisX = {minimum: min, maximum: max};
     chart.options.data[0].dataPoints = r;
     chart.render()
   }

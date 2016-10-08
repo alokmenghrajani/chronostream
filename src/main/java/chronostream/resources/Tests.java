@@ -2,14 +2,15 @@ package chronostream.resources;
 
 import chronostream.core.Crypto;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableList;
-import java.security.Key;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.crypto.Cipher;
+import java.util.function.BiConsumer;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -31,8 +32,25 @@ import static java.lang.String.format;
 @Produces(MediaType.APPLICATION_JSON)
 public class Tests {
   private final AtomicInteger testIds = new AtomicInteger();
-
   private Map<Integer, TestResult> testResultMap = new ConcurrentHashMap<>();
+
+  enum Algorithms {
+    AES128GCM_ENC("AES-128/GCM/NoPadding encryption",
+        Crypto::prepareAesEncryption,
+        Crypto::doAesEncryption),
+    AES128GCM_DEC("AES-128/GCM/NoPadding decryption", null, null),
+    HKDF("HKDF", null, null);
+
+    public String name;
+    public BiConsumer<Crypto, TestResult>  prepare;
+    public BiConsumer<Crypto, TestResult>  run;
+
+    Algorithms(String name, BiConsumer<Crypto, TestResult>  prepare, BiConsumer<Crypto, TestResult>  run) {
+      this.name = name;
+      this.prepare = prepare;
+      this.run = run;
+    }
+  }
 
   public class TestResultJob {
     public long startTime;
@@ -56,27 +74,38 @@ public class Tests {
     this.crypto = crypto;
   }
 
+  public class ListResponse {
+    public Map<String, String> algorithms;
+    public Set<String> engines;
+  }
+
+  /**
+   * Returns list of algorithms & providers. Used to dynamically populate the form which
+   * initiates tests.
+   */
+  @GET
+  @Timed
+  @Path("list")
+  public ListResponse list() {
+    ListResponse r = new ListResponse();
+    r.algorithms = new HashMap<>();
+    Arrays.stream(Algorithms.values()).forEach(e -> r.algorithms.put(e.toString(), e.name));
+    r.engines = crypto.keySet();
+
+    return r;
+  }
+
   @GET
   @Timed
   @Path("start")
-  public StartResponse start(@QueryParam("test") String test, @QueryParam("provider") String provider, @QueryParam("thread") int threads) {
-    Validate.notNull(test);
-    Validate.notNull(provider);
+  public StartResponse start(@QueryParam("algorithm") String algorithm,
+      @QueryParam("engine") String engine,
+      @QueryParam("bytes") int bytes,
+      @QueryParam("iterations") int iterations,
+      @QueryParam("thread") int threads) {
 
-    // Check that test exists
-    List<String> tests = ImmutableList.of("aes-gcm-nopadding");
-    if (!tests.contains(test)) {
-      throw new RuntimeException(format("sorry, invalid test: %s", test));
-    }
-
-    // Check that the provider exists
-    if (!crypto.containsKey(provider)) {
-      throw new RuntimeException(format("sorry, invalid provider: %s", provider));
-    }
-
-    if (threads == 0) {
-      threads = 100;
-    }
+    Algorithms alg = Algorithms.valueOf(algorithm);
+    Crypto c = crypto.get(engine);
 
     // start test
     StartResponse r = new StartResponse();
@@ -84,8 +113,7 @@ public class Tests {
     TestResult result = new TestResult();
     testResultMap.put(r.id, result);
 
-    // TODO: support various tests
-    new Thread(new AesGcmNoPaddingTest(crypto.get(provider), result, threads)).start();
+    new Thread(new SetupTest(c, alg, result, iterations, threads)).start();
 
     return r;
   }
@@ -109,71 +137,76 @@ public class Tests {
     return r;
   }
 
-  private class AesGcmNoPaddingTest implements Runnable {
+  private class SetupTest implements Runnable {
     private Crypto crypto;
+    private Algorithms alg;
     private TestResult result;
+    private int iterations;
     private int threads;
 
-    AesGcmNoPaddingTest(Crypto crypto, TestResult result, int threads) {
+    SetupTest(Crypto crypto, Algorithms alg, TestResult result, int iterations, int threads) {
       this.crypto = crypto;
+      this.alg = alg;
       this.result = result;
+      this.iterations = iterations;
       this.threads = threads;
     }
 
     public void run() {
-      System.out.println(format("Starting AesGcmNoPaddingTest with %d threads", threads));
+      System.out.println(format("Starting %s with %d threads", alg.name, threads));
 
       try {
-        crypto.prepareAesEncryption();
+        alg.prepare.accept(crypto, result);
 
         // submit jobs
         final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(threads);
         ExecutorService executorService =
             new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, queue);
-        Clock clock = Clock.systemDefaultZone();
-        long start = clock.millis();
-        // TODO: make time a variable
 
-        int totalSubmitted = 0;
-        while (clock.millis() - start < 10000) {
-          if (queue.remainingCapacity() > 0) {
-            executorService.submit(new AesGcmNoPaddingTestJob(clock, result, crypto));
-            totalSubmitted++;
-          }
+        Clock clock = Clock.systemDefaultZone();
+        for (int i=0; i<threads; i++) {
+          executorService.submit(new DoTestJob(crypto, alg, result, iterations));
         }
-        System.out.println(format("Ending AesGcmNoPaddingTest"));
-        result.total = totalSubmitted;
-        executorService.awaitTermination(1, TimeUnit.MINUTES);
+        executorService.awaitTermination(5, TimeUnit.MINUTES);
+
+        System.out.println(format("Ending test %s", alg.name));
+        result.total = threads * iterations;
       } catch (Exception e) {
         result.exception = e;
       }
     }
   }
 
-  private class AesGcmNoPaddingTestJob implements Runnable {
-    private Clock clock;
-    private TestResult result;
+  private class DoTestJob implements Runnable {
     private Crypto crypto;
+    private Algorithms alg;
+    private TestResult result;
+    private int iterations;
 
-    AesGcmNoPaddingTestJob(Clock clock, TestResult result, Crypto crypto) {
-      this.clock = clock;
+    DoTestJob(Crypto crypto, Algorithms alg, TestResult result, int iterations) {
+      this.crypto = crypto;
+      this.alg = alg;
       this.result = result;
       this.crypto = crypto;
+      this.iterations = iterations;
     }
 
     public void run() {
       try {
-        long start = System.nanoTime();
-        crypto.doAesEncryption();
-        long end = System.nanoTime();
+        for (int i=0; i<iterations; i++) {
+          long start = System.nanoTime();
+          alg.run.accept(crypto, result);
+          long end = System.nanoTime();
 
-        TestResultJob resultJob = new TestResultJob();
-        resultJob.startTime = start / 1000;
-        resultJob.endTime = end / 1000;
-        result.startEndTimes.add(resultJob);
+          TestResultJob resultJob = new TestResultJob();
+          resultJob.startTime = start / 1000;
+          resultJob.endTime = end / 1000;
+          result.startEndTimes.add(resultJob);
+        }
       } catch (Exception e) {
-        // TODO: record this exception!
+        // TODO: improve exception handling
         System.out.println(e);
+        result.exception = e;
       }
     }
   }

@@ -1,0 +1,6 @@
+- save test results to H2.
+- load previous results from H2.
+- add some validation tests
+- figure out better graphing story
+- plot network graph?
+- plot GC pauses
