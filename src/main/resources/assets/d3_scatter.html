@@ -1,0 +1,123 @@
+<html>
+<head>
+  <style>
+    .dot {
+      stroke: #000;
+      fill: steelblue;
+    }
+    text {
+      fill: #000;
+      color: red;
+      shape-rendering: crispEdges;
+    }
+  </style>
+  <script type="text/javascript" src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script type="text/javascript" src="http://canvasjs.com/assets/script/canvasjs.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/babel-core@5.8.38/browser.min.js"></script>
+  <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+<body>
+
+<p>d3 is a little painful to setup, mostlyl because v4 and v3 have different APIs.</p>
+<p>This page makes sure the d3 piece is working as expected.</p>
+
+<div id="d3"/>
+
+<script>
+  var margin = {top: 20, right: 20, bottom: 30, left: 50},
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
+
+  var x = d3.scaleLog()
+      .domain([1,100])
+      .range([0, width]);
+
+  var y = d3.scaleLog()
+      .domain([1,100])
+      .range([height, 0]);
+
+  var xAxis = d3.axisBottom(x);
+
+  var yAxis = d3.axisLeft(y);
+
+  var data = [];
+  for (var i=1; i<100; i++) {
+    data.push({x: i, y: Math.random() * 100+1})
+  }
+
+    var svg = d3.select("body").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .append("text")
+      .attr("class", "label")
+      .attr("x", width)
+      .attr("y", -6)
+      .style("text-anchor", "end")
+      .text("Sepal Width (cm)");
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+      .attr("class", "label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Sepal Length (cm)")
+
+  svg.selectAll(".dot")
+      .data(data)
+      .enter()
+        .append("circle")
+        .attr("class", "dot")
+        .attr("r", 2.5)
+        .attr("cx", function(d) { return x(d.x); })
+        .attr("cy", function(d) { return y(d.y); });
+
+//
+//
+//
+//
+//
+//  svg.append("clipPath")
+//      .attr("id", "innerGraph")
+//      .append("rect")
+//      .attr("width", width + margin.left + margin.right)
+//      .attr("height", height + margin.top + margin.bottom);
+//
+//  svg.append("g")
+//      .attr("class", "y axis")
+//      .call(yAxis)
+//      .append("text")
+//      .attr("transform", "rotate(-90)")
+//      .attr("y", 6)
+//      .attr("dy", ".71em")
+//      .style("text-anchor", "end")
+//      .text("foo");
+//
+//  var axis = svg.append("g")
+//      .attr("class", "x axis")
+//      .attr("transform", "translate(0," + height + ")")
+//      .call(xAxis);
+//
+//  var clip = svg.append("g")
+//      .attr("clip-path", "url(#innerGraph)")
+//  var p = clip.append("path")
+//        .datum(data)
+//        .attr("class", "line")
+//        .attr("d", line);
+</script>
+
+</body>
+</html>

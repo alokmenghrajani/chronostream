@@ -9,12 +9,19 @@
       margin: 1px;
       color: white;
     }
+
+    path {
+      stroke: steelblue;
+      stroke-width: 2;
+      fill: none;
+    }
   </style>
   <script type="text/javascript" src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
   <script type="text/javascript" src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
   <script type="text/javascript" src="http://canvasjs.com/assets/script/canvasjs.min.js"></script>
   <script type="text/javascript" src="https://unpkg.com/babel-core@5.8.38/browser.min.js"></script>
+  <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
 </head>
 <body>
 
@@ -86,113 +93,148 @@
   class CryptoResult extends React.Component {
     constructor(props) {
       super(props);
-      this.state = {arr: []}
+      this.state = {exception: null, status: "started..."}
+      this.chart = null;
+      this.arr = [];
     }
 
     componentDidMount() {
       // keep fetching data until we have everything
+      this.chart = new CanvasJS.Chart("chart-" + this.props.id, {
+        title: {
+          text: "the chart"
+        }, axisY: {maximum: 0}, data: [{type: "column", dataPoints: []}]
+      });
+      window.debugChart = this.chart;
+      window.debugArr = this;
+
+      this.results()
+    }
+
+    results() {
+      $.ajax({
+        url: '/tests/results?id=' + this.props.id + '&offset=' + this.arr.length
+      }).done(data => {
+        if (data.exception) {
+          console.error(data.exception);
+          this.setState({exception: data.exception});
+        }
+        for (var i = 0; i < data.startEndTimes.length; i++) {
+          var v = data.startEndTimes[i].endTime - data.startEndTimes[i].startTime;
+          this.arr.push(v);
+          this.chart.options.data[0].dataPoints.push({x: this.arr.length, y: v});
+          if (v > this.chart.options.axisY.maximum) {
+            this.chart.options.axisY.maximum = v;
+          }
+          if (this.chart.options.data[0].dataPoints.length > 20000) {
+            this.chart.options.data[0].dataPoints.shift();
+          }
+        }
+        this.chart.render()
+
+        // get more data
+        if ((data.total == 0) || (this.arr.length < data.total)) {
+          this.results();
+        } else {
+          debugger;
+          this.setState({status: "done."});
+          //plotPercentile(this.chart, arr)
+        }
+      }).fail(err => {
+        console.error(err);
+        this.setState({status: err.status + ": " + err.statusText})
+      })
     }
 
     render() {
-      if (this.state.arr.length == 0) {
-        return <p>started...</p>;
-      }
-      return <b>here: {this.props.id}</b>
+      return <div>
+        <div id={"chart-" + this.props.id} style={{height: '300px', width: '100%'}}></div>
+        <p>{this.state.status}</p>
+        <p>{this.state.exception}</p>
+      </div>;
     }
   }
 
   ReactDOM.render(<CryptoForm/>, document.getElementById('form'));
 </script>
 
-<div id="chartContainer" style="height: 300px; width: 100%;"></div>
-<div class="chart" id="aes-gcm-nopadding-d3"></div>
-<p>Status: <span id="aes-gcm-nopadding-status"></span></p>
+  <!--function plotPercentile(chart, arr) {-->
+    <!--// find the min/max values. We'll then bucket the results-->
+    <!--var min=0, max=0;-->
+    <!--for (var i=0; i<arr.length; i++) {-->
+      <!--min = (min < arr[i]) ? min : arr[i];-->
+      <!--max = (max > arr[i]) ? max : arr[i];-->
+    <!--}-->
+
+    <!--var r = [];-->
+    <!--var bucket_size = (max - min) / 20;-->
+    <!--for (var i=min; i<max; i+=bucket_size) {-->
+      <!--var y = 0;-->
+      <!--for (var j=0; j<arr.length; j++) {-->
+        <!--if ((arr[j] >= i) && (arr[j] < (i+bucket_size))) {-->
+          <!--y++;-->
+        <!--}-->
+      <!--}-->
+      <!--r.push({x: i, y: y/arr.length});-->
+    <!--}-->
+
+    <!--chart.options.axisY.maximum = null;-->
+    <!--chart.options.axisX = {minimum: min, maximum: max};-->
+    <!--chart.options.data[0].dataPoints = r;-->
+    <!--chart.render()-->
+  <!--}-->
+
+<div id="d3"/>
+
 <script>
-//  function blah() {
-//    // make an Ajax request to start a test.
-//    $.ajax({
-//      url: '/tests/start?' + $('form').serialize()
-//    }).done(data => {
-//      status.text("started.")
-//
-//      // continuously grab the results and render them in D3
-//      var arr = []
-//      var chart = new CanvasJS.Chart("chartContainer", {
-//        title:{
-//          text: "the chart"
-//        },
-//        axisY: {maximum: 0},
-//        data: [{
-//            // Change type to "doughnut", "line", "splineArea", etc.
-//            type: "column",
-//            dataPoints: []
-//          }]
-//      });
-//      window.debugChart = chart;
-//      window.debugArr = arr;
-//      results(status, chart, data.id, arr)
-//  })
-//  }
+  var margin = {top: 20, right: 20, bottom: 30, left: 50},
+      width = 960 - margin.left - margin.right,
+      height = 500 - margin.top - margin.bottom;
 
-  function results(status, chart, id, arr) {
-    $.ajax({
-      url: '/tests/results?id='+id+'&offset='+arr.length
-    }).done(data => {
-      if (data.exception) {
-        console.error(data.exception)
-      }
-      for (var i=0; i<data.startEndTimes.length; i++) {
-        var v = data.startEndTimes[i].endTime - data.startEndTimes[i].startTime;
-        arr.push(v);
-        chart.options.data[0].dataPoints.push({x: arr.length, y: v});
-        if (v > chart.options.axisY.maximum) {
-          chart.options.axisY.maximum = v;
-        }
-        if (chart.options.data[0].dataPoints.length > 20000) {
-          chart.options.data[0].dataPoints.shift();
-        }
-      }
-      chart.render()
+  var x = d3.scaleLinear()
+      .domain([1,10])
+      .range([0, width]);
 
-      // get more data
-      if ((data.total == 0) || (arr.length < data.total)) {
-        results(status, chart, id, arr);
-      } else {
-        plotPercentile(chart, arr)
-        status.text("done.")
-      }
-    })
-    .fail(err => {
-      console.error(err)
-      status.text(err.status + ": " + err.statusText)
-    })
-  }
+  var y = d3.scaleLinear()
+      .domain([0,100])
+      .range([height, 0]);
 
-  function plotPercentile(chart, arr) {
-    // find the min/max values. We'll then bucket the results
-    var min=0, max=0;
-    for (var i=0; i<arr.length; i++) {
-      min = (min < arr[i]) ? min : arr[i];
-      max = (max > arr[i]) ? max : arr[i];
-    }
+  var xAxis = d3.axisBottom(x);
 
-    var r = [];
-    var bucket_size = (max - min) / 20;
-    for (var i=min; i<max; i+=bucket_size) {
-      var y = 0;
-      for (var j=0; j<arr.length; j++) {
-        if ((arr[j] >= i) && (arr[j] < (i+bucket_size))) {
-          y++;
-        }
-      }
-      r.push({x: i, y: y/arr.length});
-    }
+  var yAxis = d3.axisLeft(y);
 
-    chart.options.axisY.maximum = null;
-    chart.options.axisX = {minimum: min, maximum: max};
-    chart.options.data[0].dataPoints = r;
-    chart.render()
-  }
+  var line = d3.line()
+      .x(function(d) { return x(d); })
+      .y(function(d) { return y(Math.random()*100); });
+
+  var data = [1,2,3,4,5,6,7,8,9];
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("foo");
+
+  svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
 </script>
+
 </body>
 </html>

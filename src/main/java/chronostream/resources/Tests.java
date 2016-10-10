@@ -102,7 +102,7 @@ public class Tests {
       @QueryParam("engine") String engine,
       @QueryParam("bytes") int bytes,
       @QueryParam("iterations") int iterations,
-      @QueryParam("thread") int threads) {
+      @QueryParam("threads") int threads) {
 
     Algorithms alg = Algorithms.valueOf(algorithm);
     Crypto c = crypto.get(engine);
@@ -163,14 +163,13 @@ public class Tests {
         ExecutorService executorService =
             new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, queue);
 
-        Clock clock = Clock.systemDefaultZone();
         for (int i=0; i<threads; i++) {
           executorService.submit(new DoTestJob(crypto, alg, result, iterations));
         }
+        result.total = threads * iterations;
         executorService.awaitTermination(5, TimeUnit.MINUTES);
 
         System.out.println(format("Ending test %s", alg.name));
-        result.total = threads * iterations;
       } catch (Exception e) {
         result.exception = e;
       }

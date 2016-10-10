@@ -8,16 +8,18 @@ import java.nio.file.Files;
 import java.util.List;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Path("/index")
+@Path("/dev")
 @Produces(MediaType.TEXT_HTML)
 public class Index {
   @GET
   @Timed
-  public String getIndex() {
-    File f = new File("src/main/resources/assets/index.html");
+  @Path("{filename}")
+  public String getFile(@PathParam("filename") String filename) {
+    File f = new File("src/main/resources/assets/" + filename);
     try {
       List<String> lines =
           Files.readAllLines(f.toPath(), Charsets.UTF_8);
