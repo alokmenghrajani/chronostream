@@ -1,3 +1,16 @@
+Must do:
+- some endpoint to download data in R format or simply write to disk after N minutes?
+  - design an experiment and gather data.
+    - AES, 128bit, x bytes, encryption, y threads
+      - average latency, throughput, etc.
+    - AES, 256bit, x bytes, encryption, y threads
+
+    - etc.
+- correctness checks
+
+Nice to have:
+- make things easier to understand (better names) + some kind of code re-use.
+  (e.g. a job runs Test multiple times and collects stats).
 - save test results to H2.
 - load previous results from H2.
 - add some correctness tests

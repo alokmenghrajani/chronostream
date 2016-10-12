@@ -17,7 +17,8 @@ import static java.lang.String.format;
 public class Crypto {
   private CryptoConfig config;
   private Provider provider;
-  private Key aesKey;
+  private Key key;
+  private Hkdf hkdf;
 
   public Crypto(CryptoConfig config) throws Exception {
     this.config = config;
@@ -27,24 +28,91 @@ public class Crypto {
     provider = (Provider)(Class.forName(config.provider).newInstance());
     Security.addProvider(provider);
 
-    // create an empty keystore
     KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
+
+    String hmacAlg = "HmacSHA256";
+    if (provider.getClass().getName().equals("com.safenetinc.luna.provider.LunaProvider")) {
+      // Luna's keystore is slightly different from other providers. The keystore file proxies the login
+      // state in some cases, but not always. It's better to use the login() method on LunaSlotManager.
+      // We don't want to depend on Luna's provider jar, so we use reflection.
+      Class slotManagerClass = Class.forName("com.safenetinc.luna.LunaSlotManager");
+      Object slotManager = slotManagerClass.getMethod("getInstance", null).invoke(null, null);
+      slotManagerClass.getMethod("login", String.class).invoke(slotManager, config.password);
+
+      // Luna has a minor quirk, we have to create the hmac key as HmacSHA1.
+      hmacAlg = "HmacSHA1";
+    }
+
+    // create an empty keystore
     keyStore.load(null, config.pass());
 
-    // create an AES key
-    Cipher aesCipher = Cipher.getInstance("AES", provider);
-    int maxAllowedKeyLength = aesCipher.getMaxAllowedKeyLength("AES");
-    System.out.println(format("Provider: %s, maxAllowedKeyLength: %d", config.name, maxAllowedKeyLength));
+    // In some cases, the keystore isn't really empty (if the Provider decides to load keys from the HSM).
+    if (keyStore.containsAlias("hmacKey")) {
+      keyStore.deleteEntry("hmacKey");
+    }
+    if (keyStore.containsAlias("aesKey")) {
+      keyStore.deleteEntry("aesKey");
+    }
 
-    KeyGenerator keyGen = KeyGenerator.getInstance("AES", provider);
-    keyGen.init(Math.min(128, maxAllowedKeyLength));
+    // create a HmacSHA256 key, 32 bytes
+    KeyGenerator keyGen = KeyGenerator.getInstance(hmacAlg, provider);
+    keyGen.init(256);
     SecretKey secretKey = keyGen.generateKey();
 
     // save the key
-    KeyStore.PasswordProtection protectionParamter = new KeyStore.PasswordProtection(config.password.toCharArray());
-    keyStore.setEntry("aesKey", new KeyStore.SecretKeyEntry(secretKey), protectionParamter);
-    keyStore.store(new FileOutputStream(config.keyStore), config.password.toCharArray());
+    KeyStore.PasswordProtection protectionParameter = new KeyStore.PasswordProtection(config.pass());
+    keyStore.setEntry("hmacKey", new KeyStore.SecretKeyEntry(secretKey), protectionParameter);
+
+    // create an AES key
+    Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
+    int maxAllowedKeyLength = aesCipher.getMaxAllowedKeyLength("AES/CBC/PKCS5Padding");
+    System.out.println(format("Provider: %s, maxAllowedKeyLength: %d", config.name, maxAllowedKeyLength));
+
+    keyGen = KeyGenerator.getInstance("AES", provider);
+    keyGen.init(Math.min(128, maxAllowedKeyLength));
+    secretKey = keyGen.generateKey();
+
+    // save the key
+    protectionParameter = new KeyStore.PasswordProtection(config.pass());
+    keyStore.setEntry("aesKey", new KeyStore.SecretKeyEntry(secretKey), protectionParameter);
+
+    // save the keystore
+    keyStore.store(new FileOutputStream(config.keyStore), config.pass());
   }
+
+  // HKDF
+
+  public static void prepareHKDF(Crypto instance, Tests.TestResult result) {
+    instance._prepareHKDF(result);
+  }
+
+  private void _prepareHKDF(Tests.TestResult result) {
+    try {
+      KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
+      InputStream readStream = new FileInputStream(config.keyStore);
+      keyStore.load(readStream, config.pass());
+      readStream.close();
+      key = keyStore.getKey("hmacKey", config.pass());
+      hkdf = new Hkdf(provider);
+    } catch (Exception e) {
+      result.exception = e;
+    }
+  }
+
+  public static void doHKDF(Crypto instance, Tests.TestResult result) {
+    // preparation
+    instance._doHKDF(result);
+  }
+
+  private void _doHKDF(Tests.TestResult result) {
+    try {
+      hkdf.expand((SecretKey) key, "hello world".getBytes(), 16);
+    } catch (Exception e) {
+      result.exception = e;
+    }
+  }
+
+  // AES encryption
 
   public static void prepareAesEncryption(Crypto instance, Tests.TestResult result) {
     instance._prepareAesEncryption(result);
@@ -54,9 +122,9 @@ public class Crypto {
     try {
       KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
       InputStream readStream = new FileInputStream(config.keyStore);
-      keyStore.load(readStream, config.password.toCharArray());
+      keyStore.load(readStream, config.pass());
       readStream.close();
-      aesKey = keyStore.getKey("aesKey", config.password.toCharArray());
+      key = keyStore.getKey("aesKey", config.pass());
     } catch (Exception e) {
       result.exception = e;
     }
@@ -69,7 +137,7 @@ public class Crypto {
   private void _doAesEncryption(Tests.TestResult result) {
     try {
       Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
-      aesCipher.init(Cipher.ENCRYPT_MODE, aesKey);
+      aesCipher.init(Cipher.ENCRYPT_MODE, key);
       aesCipher.update("4444444444444444".getBytes());
       aesCipher.doFinal();
     } catch (Exception e) {

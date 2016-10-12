@@ -39,7 +39,7 @@ public class Tests {
         Crypto::prepareAesEncryption,
         Crypto::doAesEncryption),
     AES128GCM_DEC("AES-128/GCM/NoPadding decryption", null, null),
-    HKDF("HKDF", null, null);
+    HKDF("HKDF", Crypto::prepareHKDF, Crypto::doHKDF);
 
     public String name;
     public BiConsumer<Crypto, TestResult>  prepare;

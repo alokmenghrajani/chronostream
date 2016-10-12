@@ -12,9 +12,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+/**
+ * Silly class to serve assets from filesystem. Only useful for development purpose.
+ */
+
 @Path("/dev")
 @Produces(MediaType.TEXT_HTML)
-public class Index {
+public class Dev {
   @GET
   @Timed
   @Path("{filename}")

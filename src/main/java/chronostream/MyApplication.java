@@ -2,7 +2,7 @@ package chronostream;
 
 import chronostream.core.Crypto;
 import chronostream.core.CryptoConfig;
-import chronostream.resources.Index;
+import chronostream.resources.Dev;
 import chronostream.resources.Tests;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
@@ -10,10 +10,8 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.util.HashMap;
 import java.util.Map;
-import javax.crypto.Cipher;
 
 import static java.lang.String.format;
-import static javax.crypto.Cipher.getMaxAllowedKeyLength;
 
 public class MyApplication extends Application<MyConfiguration> {
 
@@ -45,7 +43,7 @@ public class MyApplication extends Application<MyConfiguration> {
             throw new RuntimeException(e);
         }
 
-        environment.jersey().register(new Index());
+        environment.jersey().register(new Dev());
         environment.jersey().register(new Tests(crypto));
     }
 }
