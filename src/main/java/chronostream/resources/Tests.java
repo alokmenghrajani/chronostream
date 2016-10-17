@@ -28,26 +28,30 @@ import org.apache.commons.lang3.Validate;
 
 import static java.lang.String.format;
 
+/**
+ * TODO: Rename to jobs?
+ */
 @Path("/tests")
 @Produces(MediaType.APPLICATION_JSON)
 public class Tests {
   private final AtomicInteger testIds = new AtomicInteger();
   private Map<Integer, TestResult> testResultMap = new ConcurrentHashMap<>();
 
+  public interface TestInterface {
+    public void doTest(Crypto instance, int bytes, TestResult result);
+  }
+
   enum Algorithms {
     AES128GCM_ENC("AES-128/GCM/NoPadding encryption",
-        Crypto::prepareAesEncryption,
         Crypto::doAesEncryption),
-    AES128GCM_DEC("AES-128/GCM/NoPadding decryption", null, null),
-    HKDF("HKDF", Crypto::prepareHKDF, Crypto::doHKDF);
+    AES128GCM_DEC("AES-128/GCM/NoPadding decryption", null),
+    HKDF("HKDF", Crypto::doHKDF);
 
     public String name;
-    public BiConsumer<Crypto, TestResult>  prepare;
-    public BiConsumer<Crypto, TestResult>  run;
+    public TestInterface run;
 
-    Algorithms(String name, BiConsumer<Crypto, TestResult>  prepare, BiConsumer<Crypto, TestResult>  run) {
+    Algorithms(String name, TestInterface run) {
       this.name = name;
-      this.prepare = prepare;
       this.run = run;
     }
   }
@@ -65,6 +69,7 @@ public class Tests {
 
   public class StartResponse {
     public int id;
+    public String summary;
   }
 
 
@@ -110,10 +115,11 @@ public class Tests {
     // start test
     StartResponse r = new StartResponse();
     r.id = testIds.incrementAndGet();
+    r.summary = String.format("%s using %s (%d bytes, %d iterations, %d threads)", alg.name, engine, bytes, iterations, threads);
     TestResult result = new TestResult();
     testResultMap.put(r.id, result);
 
-    new Thread(new SetupTest(c, alg, result, iterations, threads)).start();
+    new Thread(new SetupTest(c, alg, result, bytes, iterations, threads)).start();
 
     return r;
   }
@@ -121,7 +127,7 @@ public class Tests {
   @GET
   @Timed
   @Path("results")
-  public TestResult results(@QueryParam("id") int id, @QueryParam("offset") int offset) {
+  public TestResult results(@QueryParam("id") int id, @QueryParam("offset") int offset, @QueryParam("count") int count) {
     Validate.isTrue(id > 0);
 
     TestResult full = testResultMap.get(id);
@@ -130,7 +136,7 @@ public class Tests {
     r.exception = full.exception;
     r.total = full.total;
     r.startEndTimes = new LinkedList<>();
-    for (int i=offset; i<Math.min(offset+50000, full.startEndTimes.size()); i++) {
+    for (int i=offset; i<Math.min(offset+count, full.startEndTimes.size()); i++) {
       r.startEndTimes.add(full.startEndTimes.get(i));
     }
 
@@ -141,10 +147,11 @@ public class Tests {
     private Crypto crypto;
     private Algorithms alg;
     private TestResult result;
+    private int bytes;
     private int iterations;
     private int threads;
 
-    SetupTest(Crypto crypto, Algorithms alg, TestResult result, int iterations, int threads) {
+    SetupTest(Crypto crypto, Algorithms alg, TestResult result, int bytes, int iterations, int threads) {
       this.crypto = crypto;
       this.alg = alg;
       this.result = result;
@@ -156,15 +163,13 @@ public class Tests {
       System.out.println(format("Starting %s with %d threads", alg.name, threads));
 
       try {
-        alg.prepare.accept(crypto, result);
-
         // submit jobs
         final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(threads);
         ExecutorService executorService =
             new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, queue);
 
         for (int i=0; i<threads; i++) {
-          executorService.submit(new DoTestJob(crypto, alg, result, iterations));
+          executorService.submit(new DoTestJob(crypto, alg, result, bytes, iterations));
         }
         result.total = threads * iterations;
         executorService.awaitTermination(5, TimeUnit.MINUTES);
@@ -180,13 +185,15 @@ public class Tests {
     private Crypto crypto;
     private Algorithms alg;
     private TestResult result;
+    private int bytes;
     private int iterations;
 
-    DoTestJob(Crypto crypto, Algorithms alg, TestResult result, int iterations) {
+    DoTestJob(Crypto crypto, Algorithms alg, TestResult result, int bytes, int iterations) {
       this.crypto = crypto;
       this.alg = alg;
       this.result = result;
       this.crypto = crypto;
+      this.bytes = bytes;
       this.iterations = iterations;
     }
 
@@ -194,7 +201,7 @@ public class Tests {
       try {
         for (int i=0; i<iterations; i++) {
           long start = System.nanoTime();
-          alg.run.accept(crypto, result);
+          alg.run.doTest(crypto, bytes, result);
           long end = System.nanoTime();
 
           TestResultJob resultJob = new TestResultJob();

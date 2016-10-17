@@ -1,25 +1,22 @@
 <html>
 <head>
   <style>
-    form {
+    #form {
       margin: 10px 50px;
       padding-bottom: 10px;
       border-bottom: 1px solid black;
     }
-    form span {
+    #form span {
       margin: 10px;
     }
-    .chart div {
-      font: 10px sans-serif;
-      background-color: steelblue;
-      text-align: right;
-      padding: 3px;
-      margin: 1px;
-      color: white;
+    #results > div {
+      width: 960px;
+      margin: 10px auto;
+      border-bottom: 1px solid black;
     }
-    path {
+    .line {
       stroke: steelblue;
-      stroke-width: 2;
+      stroke-width: 1px;
       fill: none;
     }
   </style>
@@ -31,6 +28,7 @@
 
 <div id="error"></div>
 <div id="form">Loading...</div>
+<div id="results"></div>
 
 <script type="text/babel">
 /*    componentDidMount() {
@@ -46,39 +44,7 @@
       this.results()
     }
 
-    results() {
-      $.ajax({
-        url: '/tests/results?id=' + this.props.id + '&offset=' + this.arr.length
-      }).done(data => {
-        if (data.exception) {
-          console.error(data.exception);
-          this.setState({exception: data.exception});
-        }
-        for (var i = 0; i < data.startEndTimes.length; i++) {
-          var v = data.startEndTimes[i].endTime - data.startEndTimes[i].startTime;
-          this.arr.push(v);
-          this.chart.options.data[0].dataPoints.push({x: this.arr.length, y: v});
-          if (v > this.chart.options.axisY.maximum) {
-            this.chart.options.axisY.maximum = v;
-          }
-          if (this.chart.options.data[0].dataPoints.length > 20000) {
-            this.chart.options.data[0].dataPoints.shift();
-          }
-        }
-        this.chart.render()
 
-        // get more data
-        if ((data.total == 0) || (this.arr.length < data.total)) {
-          this.results();
-        } else {
-          this.setState({status: "done."});
-          //plotPercentile(this.chart, arr)
-        }
-      }).fail(err => {
-        console.error(err);
-        this.setState({status: err.status + ": " + err.statusText})
-      })
-    }
 
     render() {
       return <div>

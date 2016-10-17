@@ -8,6 +8,7 @@ import java.security.Key;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
+import java.util.Random;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -17,8 +18,9 @@ import static java.lang.String.format;
 public class Crypto {
   private CryptoConfig config;
   private Provider provider;
-  private Key key;
+  private Key hmacKey;
   private Hkdf hkdf;
+  private Key aesKey;
 
   public Crypto(CryptoConfig config) throws Exception {
     this.config = config;
@@ -78,67 +80,62 @@ public class Crypto {
 
     // save the keystore
     keyStore.store(new FileOutputStream(config.keyStore), config.pass());
+
+    this.prepareHKDF();
+    this.prepareAesEncryption();
   }
 
   // HKDF
+  private void prepareHKDF() throws Exception {
+    KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
+    InputStream readStream = new FileInputStream(config.keyStore);
+    keyStore.load(readStream, config.pass());
+    readStream.close();
+    hmacKey = keyStore.getKey("hmacKey", config.pass());
+    hkdf = new Hkdf(provider);
 
-  public static void prepareHKDF(Crypto instance, Tests.TestResult result) {
-    instance._prepareHKDF(result);
+    hkdf.expand((SecretKey) hmacKey, "hello world".getBytes(), 16);
   }
 
-  private void _prepareHKDF(Tests.TestResult result) {
+  public static void doHKDF(Crypto instance, int bytes, Tests.TestResult result) {
+    instance._doHKDF(bytes, result);
+  }
+
+  private void _doHKDF(int bytes, Tests.TestResult result) {
     try {
-      KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
-      InputStream readStream = new FileInputStream(config.keyStore);
-      keyStore.load(readStream, config.pass());
-      readStream.close();
-      key = keyStore.getKey("hmacKey", config.pass());
-      hkdf = new Hkdf(provider);
-    } catch (Exception e) {
-      result.exception = e;
-    }
-  }
-
-  public static void doHKDF(Crypto instance, Tests.TestResult result) {
-    // preparation
-    instance._doHKDF(result);
-  }
-
-  private void _doHKDF(Tests.TestResult result) {
-    try {
-      hkdf.expand((SecretKey) key, "hello world".getBytes(), 16);
+      byte[] b = new byte[bytes];
+      new Random().nextBytes(b);
+      hkdf.expand((SecretKey) hmacKey, b, 16);
     } catch (Exception e) {
       result.exception = e;
     }
   }
 
   // AES encryption
+  private void prepareAesEncryption() throws Exception {
+    KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
+    InputStream readStream = new FileInputStream(config.keyStore);
+    keyStore.load(readStream, config.pass());
+    readStream.close();
 
-  public static void prepareAesEncryption(Crypto instance, Tests.TestResult result) {
-    instance._prepareAesEncryption(result);
+    aesKey = keyStore.getKey("aesKey", config.pass());
+    Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
+    aesCipher.init(Cipher.ENCRYPT_MODE, aesKey);
+    aesCipher.update("4444444444444444".getBytes());
+    aesCipher.doFinal();
   }
 
-  private void _prepareAesEncryption(Tests.TestResult result) {
-    try {
-      KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
-      InputStream readStream = new FileInputStream(config.keyStore);
-      keyStore.load(readStream, config.pass());
-      readStream.close();
-      key = keyStore.getKey("aesKey", config.pass());
-    } catch (Exception e) {
-      result.exception = e;
-    }
+  public static void doAesEncryption(Crypto instance, int bytes, Tests.TestResult result) {
+    instance._doAesEncryption(bytes, result);
   }
 
-  public static void doAesEncryption(Crypto instance, Tests.TestResult result) {
-    instance._doAesEncryption(result);
-  }
-
-  private void _doAesEncryption(Tests.TestResult result) {
+  private void _doAesEncryption(int bytes, Tests.TestResult result) {
     try {
       Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
-      aesCipher.init(Cipher.ENCRYPT_MODE, key);
-      aesCipher.update("4444444444444444".getBytes());
+      aesCipher.init(Cipher.ENCRYPT_MODE, aesKey);
+      byte[] b = new byte[bytes];
+      new Random().nextBytes(b);
+      aesCipher.update(b);
       aesCipher.doFinal();
     } catch (Exception e) {
       result.exception = e;
