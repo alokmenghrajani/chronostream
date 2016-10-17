@@ -11,6 +11,6 @@ Obligatory reading: https://zedshaw.com/archive/programmers-need-to-learn-statis
 # running
 
     mvn package
-    java -cp bcprov-jdk15on-1.51.jar:target/chronostream-1.0-SNAPSHOT.jar chronostream.MyApplication server src/main/resources/dev.yaml
+    java -cp bcprov-jdk15on-1.51.jar:target/chronostream-1.0-SNAPSHOT.jar chronostream.App server src/main/resources/dev.yaml
 
 and then open [http://localhost:8080/index](http://localhost:8080/index)

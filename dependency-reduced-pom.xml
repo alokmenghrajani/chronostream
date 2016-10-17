@@ -121,7 +121,7 @@
   </dependencyManagement>
   <properties>
     <dropwizard.version>0.9.1</dropwizard.version>
-    <mainClass>chronostream.MyApplication</mainClass>
+    <mainClass>chronostream.App</mainClass>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>

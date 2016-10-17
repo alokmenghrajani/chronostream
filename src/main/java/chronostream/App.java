@@ -13,10 +13,10 @@ import java.util.Map;
 
 import static java.lang.String.format;
 
-public class MyApplication extends Application<MyConfiguration> {
+public class App extends Application<Config> {
 
     public static void main(final String[] args) throws Exception {
-        new MyApplication().run(args);
+        new App().run(args);
     }
 
     @Override
@@ -25,12 +25,12 @@ public class MyApplication extends Application<MyConfiguration> {
     }
 
     @Override
-    public void initialize(final Bootstrap<MyConfiguration> bootstrap) {
+    public void initialize(final Bootstrap<Config> bootstrap) {
         bootstrap.addBundle(new AssetsBundle("/assets", "/assets/", "index.html"));
     }
 
     @Override
-    public void run(final MyConfiguration configuration,
+    public void run(final Config configuration,
                     final Environment environment) {
 
         // Initialize the crypto stuff
