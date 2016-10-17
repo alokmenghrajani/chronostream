@@ -1,6 +1,14 @@
 <html>
 <head>
   <style>
+    form {
+      margin: 10px 50px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid black;
+    }
+    form span {
+      margin: 10px;
+    }
     .chart div {
       font: 10px sans-serif;
       background-color: steelblue;
@@ -9,7 +17,6 @@
       margin: 1px;
       color: white;
     }
-
     path {
       stroke: steelblue;
       stroke-width: 2;
@@ -18,83 +25,15 @@
   </style>
   <script type="text/javascript" src="/assets/jquery.min.js"></script>
   <script type="text/javascript" src="/assets/d3.v4.min.js"></script>
+  <script type="text/javascript" src="/dev/chronostream.js"></script>
 </head>
 <body>
 
-<div id="form"></div>
+<div id="error"></div>
+<div id="form">Loading...</div>
 
 <script type="text/babel">
-  // TODO: it would be nice if SetupForm was someone linked to the Crypto class...
-  class CryptoForm extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = {algorithms: {}, engines: [], results: []}
-    }
-
-    componentDidMount() {
-      $.ajax({
-        url: '/tests/list'
-      }).done(data => {
-        this.setState(data);
-      }).fail(err => {
-        console.error(err);
-      });
-    }
-
-    render() {
-      var algorithms = []
-      for (var i in this.state.algorithms) {
-        var alg = this.state.algorithms[i];
-        algorithms.push(<option key={i} value={i}>{alg}</option>);
-      }
-
-      var engines = [];
-      for (var i=0; i<this.state.engines.length; i++) {
-        var engine = this.state.engines[i];
-        engines.push(<option key={engine} value={engine}>{engine}</option>);
-      }
-      return <div>
-        <form>
-          <span>algorithm: <select name="algorithm">{algorithms}</select></span>&nbsp;
-          <span>engine: <select name="engine">{engines}</select></span>&nbsp;
-          <span>bytes: <input type="text" name="bytes" defaultValue="10"/></span>&nbsp;
-          <span>iterations: <input type="text" name="iterations" defaultValue="10000"/></span>&nbsp;
-          <span>threads: <input type="text" name="threads" defaultValue="100"/></span>&nbsp;
-          <span><button onClick={e => this.startTest(e)}>start</button></span>
-        </form>
-        <div>
-          {this.state.results}
-        </div>
-      </div>
-    }
-
-    startTest(e) {
-      e.preventDefault();
-
-      // make an Ajax request to start a test.
-      $.ajax({
-        url: '/tests/start?' + $('form').serialize()
-      }).done(data => {
-        var r = this.state.results.slice()
-        r.push(<CryptoResult key={data.id} id={data.id}/>);
-        this.setState({results: r})
-      }).fail(err => {
-        console.error(err);
-        var r = this.state.results.slice()
-        r.push(<b key="1">something failed: {err.status}: {err.statusText}</b>)
-      });
-    }
-  }
-
-  class CryptoResult extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = {exception: null, status: "started..."}
-      this.chart = null;
-      this.arr = [];
-    }
-
-    componentDidMount() {
+/*    componentDidMount() {
       // keep fetching data until we have everything
       this.chart = new CanvasJS.Chart("chart-" + this.props.id, {
         title: {
@@ -149,35 +88,7 @@
       </div>;
     }
   }
-
-  ReactDOM.render(<CryptoForm/>, document.getElementById('form'));
+  */
 </script>
-
-  <!--function plotPercentile(chart, arr) {-->
-    <!--// find the min/max values. We'll then bucket the results-->
-    <!--var min=0, max=0;-->
-    <!--for (var i=0; i<arr.length; i++) {-->
-      <!--min = (min < arr[i]) ? min : arr[i];-->
-      <!--max = (max > arr[i]) ? max : arr[i];-->
-    <!--}-->
-
-    <!--var r = [];-->
-    <!--var bucket_size = (max - min) / 20;-->
-    <!--for (var i=min; i<max; i+=bucket_size) {-->
-      <!--var y = 0;-->
-      <!--for (var j=0; j<arr.length; j++) {-->
-        <!--if ((arr[j] >= i) && (arr[j] < (i+bucket_size))) {-->
-          <!--y++;-->
-        <!--}-->
-      <!--}-->
-      <!--r.push({x: i, y: y/arr.length});-->
-    <!--}-->
-
-    <!--chart.options.axisY.maximum = null;-->
-    <!--chart.options.axisX = {minimum: min, maximum: max};-->
-    <!--chart.options.data[0].dataPoints = r;-->
-    <!--chart.render()-->
-  <!--}-->
-
 </body>
 </html>
