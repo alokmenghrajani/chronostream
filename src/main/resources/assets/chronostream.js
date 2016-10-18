@@ -9,7 +9,7 @@ class Chronostream {
       this.updateForm(data);
     }).fail(err => {
       console.error(err);
-      $('#error').text(err);
+      $('#error').text(err.responseJSON.message);
     });
   }
 
@@ -17,7 +17,7 @@ class Chronostream {
    * Once we get the list of algorithms/engines, we can build the form.
    */
   updateForm(data) {
-    var form = $("<form/>", {id: "form"});
+    var form = $("<form/>", {id: "perf"});
     var algorithm = $("<select/>", {name: "algorithm"});
     for (var i in data.algorithms) {
       algorithm.append($("<option/>", {value: i}).text(data.algorithms[i]));
@@ -48,10 +48,10 @@ class Chronostream {
       $("<input/>", {id: "threads", type: "text", name: "threads", value: 100, size: 7})));
 
     var button = $("<button/>").text("start");
-    button.click(e => this.startTest(e));
+    button.click(e => this.startPerfTest(e));
     form.append($("<span/>").append(button));
 
-    $('#form').replaceWith(form);
+    $("#perf").replaceWith(form);
   }
 
   /**
@@ -59,17 +59,17 @@ class Chronostream {
    *
    * The results are gradually streamed from the server.
    */
-  startTest(e) {
+  startPerfTest(e) {
     e.preventDefault();
 
     // make an Ajax request to start a test.
     $.ajax({
-      url: '/tests/start?' + $('#form').serialize()
+      url: '/tests/start?' + $('#perf').serialize()
     }).done(data => {
       new Result(data.id, data.summary, $('#iterations').val() * $('#threads').val());
     }).fail(err => {
       console.error(err);
-      $('#error').text(err);
+      $('#error').text(err.responseJSON.message);
     });
   }
 }
@@ -182,11 +182,11 @@ class Result {
       var l = Math.max(this.counter - this.scaleX, 0);
       this.x.domain([l, l + this.scaleX - 1]);
       d3.selectAll("g.x.axis").call(this.xAxis);
-      this.p.attr("d", this.line)
+      this.p.attr("d", this.line);
       this.fetchResult();
     }).fail(err => {
       console.error(err);
-      this.result.find(".error").text(err);
+      this.result.find(".error").text(err.responseJSON.message);
     })
   }
 }

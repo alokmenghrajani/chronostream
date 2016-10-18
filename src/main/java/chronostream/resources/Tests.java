@@ -2,6 +2,9 @@ package chronostream.resources;
 
 import chronostream.core.Crypto;
 import com.codahale.metrics.annotation.Timed;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,6 +26,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang3.Validate;
 
@@ -39,11 +43,6 @@ public class Tests {
 
   public interface TestInterface {
     void doTest(Crypto instance, int bytes, TestResult result);
-  }
-
-  enum TestType {
-    CORRECTNESS,
-    PERF
   }
 
   enum Algorithms {
@@ -115,19 +114,27 @@ public class Tests {
       @QueryParam("iterations") int iterations,
       @QueryParam("threads") int threads) {
 
-    Algorithms alg = Algorithms.valueOf(algorithm);
-    Crypto c = crypto.get(engine);
+    try {
+      Algorithms alg = Algorithms.valueOf(algorithm);
+      Crypto c = crypto.get(engine);
 
-    // start test
-    StartResponse r = new StartResponse();
-    r.id = testIds.incrementAndGet();
-    r.summary = String.format("%s using %s (%d bytes, %d iterations, %d threads)", alg.name, engine, bytes, iterations, threads);
-    TestResult result = new TestResult();
-    testResultMap.put(r.id, result);
+      // start test
+      StartResponse r = new StartResponse();
+      r.id = testIds.incrementAndGet();
+      r.summary =
+          String.format("%s using %s (%d bytes, %d iterations, %d threads)", alg.name, engine,
+              bytes, iterations, threads);
+      TestResult result = new TestResult();
+      testResultMap.put(r.id, result);
 
-    new Thread(new SetupTest(c, alg, result, bytes, iterations, threads)).start();
-
-    return r;
+      new Thread(new SetupTest(c, alg, result, bytes, iterations, threads)).start();
+      return r;
+    } catch (Exception e) {
+      Writer writer = new StringWriter();
+      PrintWriter printWriter = new PrintWriter(writer);
+      e.printStackTrace(printWriter);
+      throw new WebApplicationException(writer.toString());
+    }
   }
 
   @GET
