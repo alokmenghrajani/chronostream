@@ -5,9 +5,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.Provider;
 import java.security.Security;
+import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Random;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -21,6 +24,7 @@ public class Crypto {
   private Key hmacKey;
   private Hkdf hkdf;
   private Key aesKey;
+  private KeyPair rsaKey;
 
   public Crypto(CryptoConfig config) throws Exception {
     this.config = config;
@@ -83,6 +87,16 @@ public class Crypto {
 
     this.prepareHKDF();
     this.prepareAesEncryption();
+
+    // create RSA key
+    // JCE doesn't support rsa out of the box?
+    if (!provider.getClass().getName().equals("com.sun.crypto.provider.SunJCE")) {
+      KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", provider);
+      RSAKeyGenParameterSpec rsaKeyGenParameterSpec =
+          new RSAKeyGenParameterSpec(2048, RSAKeyGenParameterSpec.F4);
+      generator.initialize(rsaKeyGenParameterSpec);
+      rsaKey = generator.generateKeyPair();
+    }
   }
 
   // HKDF
@@ -139,6 +153,24 @@ public class Crypto {
       aesCipher.doFinal();
     } catch (Exception e) {
       result.exception = e;
+    }
+  }
+
+  // RSA encryption
+  public static byte[] doRsaEncryption(Crypto instance, int bytes, Tests.TestResult result) {
+    return instance._doRsaEncryption(bytes, result);
+  }
+
+  private byte[] _doRsaEncryption(int bytes, Tests.TestResult result) {
+    try {
+      Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding", provider);
+      cipher.init(Cipher.ENCRYPT_MODE, rsaKey.getPublic());
+      byte[] b = new byte[bytes];
+      new Random().nextBytes(b);
+      return cipher.doFinal(b);
+    } catch (Exception e) {
+      result.exception = e;
+      return null;
     }
   }
 }

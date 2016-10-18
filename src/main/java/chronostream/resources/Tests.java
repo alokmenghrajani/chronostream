@@ -38,14 +38,20 @@ public class Tests {
   private Map<Integer, TestResult> testResultMap = new ConcurrentHashMap<>();
 
   public interface TestInterface {
-    public void doTest(Crypto instance, int bytes, TestResult result);
+    void doTest(Crypto instance, int bytes, TestResult result);
+  }
+
+  enum TestType {
+    CORRECTNESS,
+    PERF
   }
 
   enum Algorithms {
     AES128GCM_ENC("AES-128/GCM/NoPadding encryption",
         Crypto::doAesEncryption),
     AES128GCM_DEC("AES-128/GCM/NoPadding decryption", null),
-    HKDF("HKDF", Crypto::doHKDF);
+    HKDF("HKDF", Crypto::doHKDF),
+    RSA_ENC("RSA-ECB-OAEPWithSHA1AndMGF1Padding encryption", Crypto::doRsaEncryption);
 
     public String name;
     public TestInterface run;

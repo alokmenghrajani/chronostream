@@ -105,6 +105,7 @@ class Result {
     this.maxValue = 0;
     this.counter = 0;
     this.data = [];
+    this.rawData = [];
 
     var svg = d3.select("#graph-" + this.id).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -147,7 +148,8 @@ class Result {
 
   fetchResult() {
     if (this.done) {
-      this.result.find(".status").text("done.");
+      this.result.find(".status").text("done, computing final results...");
+      new FinalResult(this);
       return;
     }
 
@@ -165,6 +167,7 @@ class Result {
 
       for (var i = 0; i < data.startEndTimes.length; i++) {
         var v = data.startEndTimes[i].endTime - data.startEndTimes[i].startTime;
+        this.rawData.push(data.startEndTimes[i]);
         this.data.push({x: this.counter, y: v});
         this.counter++;
         this.maxValue = Math.max(this.maxValue, v);
@@ -187,6 +190,71 @@ class Result {
     })
   }
 }
+
+class FinalResult {
+  constructor(parent) {
+    var latencies = [];
+    var start = parent.rawData[0].startTime;
+    var end = parent.rawData[0].endTime;
+    for (var i=0; i<parent.rawData.length; i++) {
+      latencies.push(parent.rawData[i].endTime - parent.rawData[i].startTime)
+      start = Math.min(start, parent.rawData[i].startTime);
+      end = Math.max(end, parent.rawData[i].endTime)
+    }
+    latencies = latencies.sort((x, y) => x < y ? -1 : (x == y ? 0 : 1));
+    var average_latency = 0;
+    for (i=0; i<latencies.length; i++) {
+      average_latency += latencies[i];
+    }
+    average_latency = average_latency / latencies.length;
+    var p99_latency = latencies[Math.floor(latencies.length * 0.99)];
+
+    var t = Math.ceil((end - start)/100);
+    var throughput = [];
+    for (i = start; i<end; i+=t) {
+      var n = 0;
+      for (var j=0; j<parent.rawData.length; j++) {
+        if ((parent.rawData[j].startTime >= i) && (parent.rawData[j].startTime < i + t)) {
+          n++;
+        }
+      }
+      throughput.push(n/t*1000);
+    }
+    throughput = throughput.sort((x, y) => x > y ? -1 : (x == y ? 0 : 1));
+
+    var average_throughput = 0;
+    for (i=0; i<throughput.length; i++) {
+      average_throughput += throughput[i];
+    }
+    average_throughput = average_throughput / throughput.length;
+    var p99_throughput = throughput[Math.floor(throughput.length * 0.99)];
+
+    var summary = $("<div/>");
+    summary.append($("<div/>").text("Latency").append(
+      $("<p/>").text("average: " + round(average_latency) + ", min: " +
+      latencies[0] + ", p99: " + p99_latency + ", max: " + latencies[latencies.length - 1])));
+
+    summary.append($("<div/>").text("Throughput").append(
+      $("<p/>").text("(avg: " + round(average_throughput) + "), min: " +
+      round(throughput[0]) + ", p99: " + round(p99_throughput) + ", max: " + round(throughput[throughput.length - 1])
+    + ", total: " + round(parent.rawData.length / (end - start) * 1000))));
+
+    parent.result.find(".status").text("");
+    parent.result.append(summary);
+  }
+}
+
+function round(n) {
+  return Math.round(n * 1000) / 1000;
+}
+
+function debugFake() {
+  p = {};
+  p.rawData = blah;
+  p.result = $('#results');
+  return new FinalResult(p);
+}
+//setTimeout(debugFake, 100);
 
 var chronostream = new Chronostream();
 window.addEventListener('load', _ => chronostream.load());
