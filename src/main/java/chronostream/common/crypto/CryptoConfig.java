@@ -8,6 +8,7 @@ public class CryptoConfig {
   public String provider;
   public String password;
   public String keyStore;
+  public boolean allowsExport;
 
   public char[] pass() {
     return password.toCharArray();
@@ -20,6 +21,7 @@ public class CryptoConfig {
         .add("provider", provider)
         .add("password", password)
         .add("keyStore", keyStore)
+        .add("allowsExport", allowsExport)
         .toString();
   }
 }

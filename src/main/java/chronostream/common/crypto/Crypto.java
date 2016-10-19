@@ -1,6 +1,5 @@
 package chronostream.common.crypto;
 
-import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -11,22 +10,22 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import static java.lang.String.format;
 
 public class Crypto {
-  private CryptoConfig config;
+  public CryptoConfig config;
   private Provider provider;
-  private SecretKey hmacKey;
   private Hkdf hkdf;
-  private Key aesKey;
+  private SecretKey hmacKey;
+  private SecretKey aesKey;
   private KeyPair rsaKey;
 
   public Crypto(CryptoConfig config) throws Exception {
     this.config = config;
     System.out.println(format("Initializing: %s", config));
 
-    // create Provider
     provider = (Provider)(Class.forName(config.provider).newInstance());
     Security.addProvider(provider);
 
@@ -57,10 +56,10 @@ public class Crypto {
     }
 
     // create a HmacSHA256 key, 32 bytes
+    hkdf = new Hkdf(provider);
     KeyGenerator keyGen = KeyGenerator.getInstance(hmacAlg, provider);
     keyGen.init(256);
     hmacKey = keyGen.generateKey();
-    hkdf = new Hkdf(provider);
 
     // create an AES key
     Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
@@ -82,6 +81,36 @@ public class Crypto {
     }
   }
 
+  /**
+   * Alternate constructor used for key-import.
+   */
+  public Crypto(CryptoConfig config, Crypto importFrom) throws Exception {
+    this.config = config;
+    System.out.println(format("re-initializing: %s", config));
+
+    // create Provider
+    provider = (Provider)(Class.forName(config.provider).newInstance());
+    hkdf = new Hkdf(provider);
+
+    String hmacAlg = "HmacSHA256";
+    if (provider.getClass().getName().equals("com.safenetinc.luna.provider.LunaProvider")) {
+      // Luna's keystore is slightly different from other providers. The keystore file proxies the login
+      // state in some cases, but not always. It's better to use the login() method on LunaSlotManager.
+      // We don't want to depend on Luna's provider jar, so we use reflection.
+      Class slotManagerClass = Class.forName("com.safenetinc.luna.LunaSlotManager");
+      Object slotManager = slotManagerClass.getMethod("getInstance", null).invoke(null, null);
+      slotManagerClass.getMethod("login", String.class).invoke(slotManager, config.password);
+
+      // Luna has a minor quirk, we have to create the hmac key as HmacSHA1.
+      hmacAlg = "HmacSHA1";
+    }
+
+    this.hmacKey = new SecretKeySpec(importFrom.hmacKey.getEncoded(), hmacAlg);
+    this.aesKey = new SecretKeySpec(importFrom.aesKey.getEncoded(), "AES");
+    this.rsaKey = importFrom.rsaKey;
+    // todo: rsa key
+  }
+
   public byte[] doCrypto(CryptoPrimitive primitive, byte[] buffer, byte[] iv) throws Exception {
     switch (primitive) {
       case AES128GCM_ENC:
@@ -91,13 +120,9 @@ public class Crypto {
       case HKDF:
         return doHKDF(buffer);
       case RSA_ENC:
-        throw new Exception("not implemented");
+        return doRsaEncryption(buffer);
       case RSA_DEC:
-        throw new Exception("not implemented");
-      case RSA_SIGN:
-        throw new Exception("not implemented");
-      case RSA_VERIFY:
-        throw new Exception("not implemented");
+        return doRsaDecryption(buffer);
     }
     throw new Exception("unreachable");
   }
@@ -121,6 +146,12 @@ public class Crypto {
   public byte[] doRsaEncryption(byte[] bytes) throws Exception {
     Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding", provider);
     cipher.init(Cipher.ENCRYPT_MODE, rsaKey.getPublic());
+    return cipher.doFinal(bytes);
+  }
+
+  public byte[] doRsaDecryption(byte[] bytes) throws Exception {
+    Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding", provider);
+    cipher.init(Cipher.DECRYPT_MODE, rsaKey.getPrivate());
     return cipher.doFinal(bytes);
   }
 }

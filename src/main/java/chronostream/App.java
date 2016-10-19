@@ -9,6 +9,7 @@ import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static java.lang.String.format;
@@ -34,7 +35,7 @@ public class App extends Application<Config> {
                     final Environment environment) {
 
         // Initialize the crypto stuff
-        Map<String, Crypto> crypto = new HashMap<>();
+        Map<String, Crypto> crypto = new LinkedHashMap<>();
         try {
             for (CryptoConfig config : configuration.crypto) {
                 crypto.put(config.name, new Crypto(config));

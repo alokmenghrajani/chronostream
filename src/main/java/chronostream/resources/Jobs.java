@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -72,8 +73,8 @@ public class Jobs {
   @Timed
   @Path("startCorrectness")
   public StartResponse startCorrectness(
-      @QueryParam("iterations") int iterations,
-      @QueryParam("threads") int threads) {
+      @FormParam("iterations") int iterations,
+      @FormParam("threads") int threads) {
 
     try {
       // start job
@@ -81,8 +82,7 @@ public class Jobs {
       r.id = testIds.incrementAndGet();
       r.summary = format("correctness (%d iterations, %d threads)", iterations, threads);
 
-      CorrectnessJobConfig config = new CorrectnessJobConfig(
-          Lists.newArrayList(crypto.values()), iterations, threads);
+      CorrectnessJobConfig config = new CorrectnessJobConfig(new ArrayList<>(crypto.values()), iterations, threads);
       CorrectnessJob job = new CorrectnessJob(config);
       testResultMap.put(r.id, job.getResult());
       new Thread(job).start();

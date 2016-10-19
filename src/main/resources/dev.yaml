@@ -4,8 +4,10 @@ crypto:
     provider: "org.bouncycastle.jce.provider.BouncyCastleProvider"
     password: "testtest"
     keyStore: "bouncycastle.bks"
+    allowsExport: true
   - name: "JCE"
     storeType: "JCEKS"
     provider: "com.sun.crypto.provider.SunJCE"
     password: "testtest2"
     keyStore: "jce.jceks"
+    allowsExport: false

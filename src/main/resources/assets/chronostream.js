@@ -48,10 +48,28 @@ class Chronostream {
       $("<input/>", {id: "threads", type: "text", name: "threads", value: 100, size: 7})));
 
     var button = $("<button/>").text("start");
-    button.click(e => this.startPerfTest(e));
+    button.click(e => this.startPerfJob(e));
     form.append($("<span/>").append(button));
 
     $("#perf").replaceWith(form);
+
+    $("#correctness button").click(e => this.startCorrectnessJob(e));
+  }
+
+  startCorrectnessJob(e) {
+    e.preventDefault();
+
+    // make an Ajax request to start a test.
+    $.post({
+      url: '/jobs/startCorrectness',
+      data: $('#correctness').serialize()
+    }).done(data => {
+      console.log(data);
+//      new PerfResult(data.id, data.summary, $('#iterations').val() * $('#threads').val());
+    }).fail(err => {
+      console.error(err);
+      $('#error').text(err.responseJSON.message);
+    });
   }
 
   /**
@@ -59,7 +77,7 @@ class Chronostream {
    *
    * The results are gradually streamed from the server.
    */
-  startPerfTest(e) {
+  startPerfJob(e) {
     e.preventDefault();
 
     // make an Ajax request to start a test.

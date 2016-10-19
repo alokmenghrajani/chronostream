@@ -17,25 +17,29 @@ public class PerfJobTask implements Runnable {
 
   public void run() {
     try {
-      byte[] buffer = new byte[config.bytes];
+      byte[] buffer1 = new byte[config.bytes];
       for (int i=0; i<config.iterations; i++) {
         // note: we don't count the time it takes to fill the random buffer
-        new Random().nextBytes(buffer);
+        new Random().nextBytes(buffer1);
 
         byte[] iv = new byte[16];
         new Random().nextBytes(iv);
+        byte[] buffer2 = buffer1;
         if (config.cryptoPrimitive == CryptoPrimitive.AES128GCM_DEC) {
-          buffer = config.crypto.doCrypto(CryptoPrimitive.AES128GCM_ENC, buffer, iv);
+          buffer2 = config.crypto.doAesEncryption(buffer1, iv);
+        }
+        if (config.cryptoPrimitive == CryptoPrimitive.RSA_DEC) {
+          buffer2 = config.crypto.doRsaEncryption(buffer1);
         }
 
         long start = System.nanoTime();
-        config.crypto.doCrypto(config.cryptoPrimitive, buffer, iv);
+        config.crypto.doCrypto(config.cryptoPrimitive, buffer2, iv);
         long end = System.nanoTime();
 
         result.addResult(start/1000000, end/1000000);
       }
     } catch (Exception e) {
-      System.out.println(e);
+      e.printStackTrace();
       result.recordException(e);
     }
   }

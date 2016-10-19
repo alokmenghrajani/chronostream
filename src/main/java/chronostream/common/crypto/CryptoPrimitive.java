@@ -5,9 +5,9 @@ public enum CryptoPrimitive {
   AES128GCM_DEC("AES-128/GCM/NoPadding decryption"),
   HKDF("HKDF"),
   RSA_ENC("RSA encryption"),
-  RSA_DEC("RSA decryption"),
-  RSA_SIGN("RSA signing"),
-  RSA_VERIFY("RSA verify");
+  RSA_DEC("RSA decryption");
+
+  //todo: sign/verify?
 
   public String name;
 
