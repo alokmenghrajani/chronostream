@@ -1,17 +1,11 @@
 package chronostream.correctness;
 
 import chronostream.common.crypto.Crypto;
-import chronostream.common.crypto.CryptoPrimitive;
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
-import org.apache.commons.lang3.tuple.Pair;
 
-import static chronostream.common.crypto.CryptoPrimitive.AES128GCM_DEC;
-import static chronostream.common.crypto.CryptoPrimitive.AES128GCM_ENC;
+import static chronostream.common.crypto.CryptoPrimitive.AES128_GCM_ENC;
 import static chronostream.common.crypto.CryptoPrimitive.HKDF;
-import static chronostream.common.crypto.CryptoPrimitive.RSA_DEC;
 import static chronostream.common.crypto.CryptoPrimitive.RSA_ENC;
 
 /**
@@ -44,10 +38,10 @@ public class CorrectnessJobTask implements Runnable {
         for (Crypto c1 : this.config.crypto) {
           byte[] iv = new byte[16];
           new Random().nextBytes(iv);
-          byte[] t = c1.doAesEncryption(buffer, iv);
+          byte[] t = c1.doAesGcmEncryption(buffer, iv);
           for (Crypto c2 : this.config.crypto) {
-            byte[] r = c2.doAesDecryption(t, iv);
-            result.addResult(AES128GCM_ENC, c1, c2, Arrays.equals(buffer, r));
+            byte[] r = c2.doAesGcmDecryption(t, iv);
+            result.addResult(AES128_GCM_ENC, c1, c2, Arrays.equals(buffer, r));
           }
         }
 

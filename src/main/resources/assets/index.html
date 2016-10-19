@@ -25,10 +25,35 @@
     .error {
       background-color: #ff8080;
     }
+
+    .progress {
+      border: 1px solid black;
+      width: 200px;
+      height: 10px;
+    }
+    .progress span {
+      background-color: #808080;
+      display: block;
+      height: 100%;
+    }
+    .correctnessResult {
+      padding-top: 10px;
+    }
+    .correctnessResult span {
+      border: 1px solid black;
+      padding: 0px 10px;
+      margin-right: 10px;
+    }
+    .ok {
+      background-color: #80ff80;
+    }
+    .fail {
+      background-color: #ff8080;
+    }
   </style>
   <script type="text/javascript" src="/assets/jquery.min.js"></script>
   <script type="text/javascript" src="/assets/d3.v4.min.js"></script>
-  <script type="text/javascript" src="/dev/chronostream.js"></script>
+  <script type="text/javascript" src="/assets/chronostream.js"></script>
 </head>
 <body>
 
@@ -41,7 +66,7 @@ Performance: <div id="perf">Loading...</div>
 <pre id="error" class="error"></pre>
 <div id="results"></div>
 
-<script src="/dev/fake.js"></script>
+<script src="/assets/fake.js"></script>
 
 </script>
 </body>

@@ -132,17 +132,25 @@ class CorrectnessResult {
       var new_content = $("<div/>");
       for (var i in data.results) {
         new_content.append($("<u/>").text(i));
+        var d = $("<div/>", {class: "correctnessResult"});
         for (var j in data.results[i]) {
-          new_content.append($("<div/>").text(
-            j + ": " + data.results[i][j].pass + " / " + data.results[i][j].fail));
+          if (data.results[i][j].fail == 0) {
+            d.append($("<span/>", {class: "ok"}).text(j));
+          } else {
+            d.append($("<span/>", {class: "fail"}).text(j));
+          }
         }
+        new_content.append(d);
         new_content.append($("<br/>"));
       }
       this.div.replaceWith(new_content);
       this.div = new_content;
 
-      console.log(data);
-      this.fetch();
+      var progress = $("<div/>", {class: "progress"})
+      progress.append($("<span/>").css("width", (data.completed / data.total * 100)+"%"));
+      new_content.append(progress);
+
+      setTimeout(() => this.fetch(), 100);
     }).fail(err => {
       console.error(err);
       this.result.find(".error").text(err.responseJSON.message);

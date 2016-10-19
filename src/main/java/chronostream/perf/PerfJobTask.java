@@ -25,8 +25,11 @@ public class PerfJobTask implements Runnable {
         byte[] iv = new byte[16];
         new Random().nextBytes(iv);
         byte[] buffer2 = buffer1;
-        if (config.cryptoPrimitive == CryptoPrimitive.AES128GCM_DEC) {
-          buffer2 = config.crypto.doAesEncryption(buffer1, iv);
+        if (config.cryptoPrimitive == CryptoPrimitive.AES128_GCM_DEC) {
+          buffer2 = config.crypto.doAesGcmEncryption(buffer1, iv);
+        }
+        if (config.cryptoPrimitive == CryptoPrimitive.AES256_CBC_DEC) {
+          buffer2 = config.crypto.doAesCbcEncryption(buffer1, iv);
         }
         if (config.cryptoPrimitive == CryptoPrimitive.RSA_DEC) {
           buffer2 = config.crypto.doRsaEncryption(buffer1);

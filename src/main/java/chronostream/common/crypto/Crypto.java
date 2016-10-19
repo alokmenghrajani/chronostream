@@ -19,7 +19,7 @@ public class Crypto {
   private Provider provider;
   private Hkdf hkdf;
   private SecretKey hmacKey;
-  private SecretKey aesKey;
+  private SecretKey aesKey128, aesKey256;
   private KeyPair rsaKey;
 
   public Crypto(CryptoConfig config) throws Exception {
@@ -67,8 +67,12 @@ public class Crypto {
     System.out.println(format("Provider: %s, maxAllowedKeyLength: %d", config.name, maxAllowedKeyLength));
 
     keyGen = KeyGenerator.getInstance("AES", provider);
-    keyGen.init(Math.min(128, maxAllowedKeyLength));
-    aesKey = keyGen.generateKey();
+    keyGen.init(128);
+    aesKey128 = keyGen.generateKey();
+
+    keyGen = KeyGenerator.getInstance("AES", provider);
+    keyGen.init(256);
+    aesKey256 = keyGen.generateKey();
 
     // create RSA key
     // note: JCE doesn't support rsa out of the box?
@@ -106,17 +110,21 @@ public class Crypto {
     }
 
     this.hmacKey = new SecretKeySpec(importFrom.hmacKey.getEncoded(), hmacAlg);
-    this.aesKey = new SecretKeySpec(importFrom.aesKey.getEncoded(), "AES");
+    this.aesKey128 = new SecretKeySpec(importFrom.aesKey128.getEncoded(), "AES");
+    this.aesKey256 = new SecretKeySpec(importFrom.aesKey256.getEncoded(), "AES");
     this.rsaKey = importFrom.rsaKey;
-    // todo: rsa key
   }
 
   public byte[] doCrypto(CryptoPrimitive primitive, byte[] buffer, byte[] iv) throws Exception {
     switch (primitive) {
-      case AES128GCM_ENC:
-        return doAesEncryption(buffer, iv);
-      case AES128GCM_DEC:
-        return doAesDecryption(buffer, iv);
+      case AES128_GCM_ENC:
+        return doAesGcmEncryption(buffer, iv);
+      case AES128_GCM_DEC:
+        return doAesGcmDecryption(buffer, iv);
+      case AES256_CBC_ENC:
+        return doAesCbcEncryption(buffer, iv);
+      case AES256_CBC_DEC:
+        return doAesCbcDecryption(buffer, iv);
       case HKDF:
         return doHKDF(buffer);
       case RSA_ENC:
@@ -131,17 +139,35 @@ public class Crypto {
     return hkdf.expand(hmacKey, bytes, 16);
   }
 
-  public byte[] doAesEncryption(byte[] bytes, byte[] iv) throws Exception {
-    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
-    cipher.init(Cipher.ENCRYPT_MODE, aesKey, new IvParameterSpec(iv));
+  // AES GCM
+
+  public byte[] doAesGcmEncryption(byte[] bytes, byte[] iv) throws Exception {
+    Cipher cipher = Cipher.getInstance("AES/GCM/Nopadding", provider);
+    cipher.init(Cipher.ENCRYPT_MODE, aesKey128, new IvParameterSpec(iv));
     return cipher.doFinal(bytes);
   }
 
-  public byte[] doAesDecryption(byte[] bytes, byte[] iv) throws Exception {
-    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
-    cipher.init(Cipher.DECRYPT_MODE, aesKey, new IvParameterSpec(iv));
+  public byte[] doAesGcmDecryption(byte[] bytes, byte[] iv) throws Exception {
+    Cipher cipher = Cipher.getInstance("AES/GCM/Nopadding", provider);
+    cipher.init(Cipher.DECRYPT_MODE, aesKey128, new IvParameterSpec(iv));
     return cipher.doFinal(bytes);
   }
+
+  // AES CBC
+
+  public byte[] doAesCbcEncryption(byte[] bytes, byte[] iv) throws Exception {
+    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
+    cipher.init(Cipher.ENCRYPT_MODE, aesKey256, new IvParameterSpec(iv));
+    return cipher.doFinal(bytes);
+  }
+
+  public byte[] doAesCbcDecryption(byte[] bytes, byte[] iv) throws Exception {
+    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
+    cipher.init(Cipher.DECRYPT_MODE, aesKey256, new IvParameterSpec(iv));
+    return cipher.doFinal(bytes);
+  }
+
+  // RSA
 
   public byte[] doRsaEncryption(byte[] bytes) throws Exception {
     Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding", provider);
