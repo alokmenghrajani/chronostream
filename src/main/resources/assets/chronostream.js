@@ -64,8 +64,7 @@ class Chronostream {
       url: '/jobs/startCorrectness',
       data: $('#correctness').serialize()
     }).done(data => {
-      console.log(data);
-//      new PerfResult(data.id, data.summary, $('#iterations').val() * $('#threads').val());
+      new CorrectnessResult(data.id, data.summary)
     }).fail(err => {
       console.error(err);
       $('#error').text(err.responseJSON.message);
@@ -90,6 +89,64 @@ class Chronostream {
       console.error(err);
       $('#error').text(err.responseJSON.message);
     });
+  }
+}
+
+class CorrectnessResult {
+  constructor(id, summary) {
+    this.id = id;
+    this.summary = summary;
+
+    // insert results into page
+    this.result = $("<div/>");
+    this.result.append($("<p/>").text(this.summary));
+    this.div = $("<div/>");
+    this.result.append(this.div);
+    this.result.append($("<pre/>", {class: "error"}));
+    this.result.append($("<div/>", {class: "status"}));
+    $("#results").append(this.result);
+
+    this.done = false;
+    this.fetch();
+  }
+
+  fetch() {
+    if (this.done) {
+      this.result.find(".status").text("done.");
+      return;
+    }
+
+    // get more data
+    $.ajax({
+      url: '/jobs/correctnessResult?id=' + this.id
+    }).done(data => {
+      if (data.exception) {
+        console.error(data.exception);
+        this.result.find(".error").text(data.exception);
+        this.done = true;
+      }
+      if (data.completed == data.total) {
+        this.done = true;
+      }
+
+      var new_content = $("<div/>");
+      for (var i in data.results) {
+        new_content.append($("<u/>").text(i));
+        for (var j in data.results[i]) {
+          new_content.append($("<div/>").text(
+            j + ": " + data.results[i][j].pass + " / " + data.results[i][j].fail));
+        }
+        new_content.append($("<br/>"));
+      }
+      this.div.replaceWith(new_content);
+      this.div = new_content;
+
+      console.log(data);
+      this.fetch();
+    }).fail(err => {
+      console.error(err);
+      this.result.find(".error").text(err.responseJSON.message);
+    })
   }
 }
 

@@ -5,11 +5,11 @@ import chronostream.common.crypto.Crypto;
 import chronostream.common.crypto.CryptoPrimitive;
 import chronostream.correctness.CorrectnessJob;
 import chronostream.correctness.CorrectnessJobConfig;
+import chronostream.correctness.CorrectnessJobResult;
 import chronostream.perf.PerfJob;
 import chronostream.perf.PerfJobConfig;
 import chronostream.perf.PerfJobResult;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.Lists;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -127,6 +127,16 @@ public class Jobs {
       e.printStackTrace(printWriter);
       throw new WebApplicationException(writer.toString());
     }
+  }
+
+  @GET
+  @Timed
+  @Path("correctnessResult")
+  public CorrectnessJobResult.Response correctnessResult(@QueryParam("id") int id) throws Exception {
+    Validate.isTrue(id > 0);
+
+    CorrectnessJobResult r = (CorrectnessJobResult) testResultMap.get(id);
+    return r.getResults();
   }
 
   @GET
