@@ -1,4 +1,4 @@
-package chronostream.core;
+package chronostream.common.crypto;
 
 import com.google.common.base.MoreObjects;
 

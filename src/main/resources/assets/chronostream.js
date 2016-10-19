@@ -2,11 +2,11 @@
  * At statup, make an ajax query to /tests/list and build the form.
  */
 class Chronostream {
-  load() {
+  loadPerf() {
     $.ajax({
-      url: '/tests/list'
+      url: '/jobs/list'
     }).done(data => {
-      this.updateForm(data);
+      this.updatePerfForm(data);
     }).fail(err => {
       console.error(err);
       $('#error').text(err.responseJSON.message);
@@ -16,24 +16,24 @@ class Chronostream {
   /**
    * Once we get the list of algorithms/engines, we can build the form.
    */
-  updateForm(data) {
+  updatePerfForm(data) {
     var form = $("<form/>", {id: "perf"});
-    var algorithm = $("<select/>", {name: "algorithm"});
-    for (var i in data.algorithms) {
-      algorithm.append($("<option/>", {value: i}).text(data.algorithms[i]));
+    var primitives = $("<select/>", {name: "primitive"});
+    for (var i in data.primitives) {
+      primitives.append($("<option/>", {value: i}).text(data.primitives[i]));
     }
     form.append($("<span/>").append(
-      $("<label/>").text("algorithm:"),
-      algorithm));
+      $("<label/>").text("primitive:"),
+      primitives));
 
-    var engine = $("<select/>", {name: "engine"});
-    for (var i=0; i<data.engines.length; i++) {
-      var e = data.engines[i];
-      engine.append($("<option/>", {value: e}).text(e));
+    var providers = $("<select/>", {name: "provider"});
+    for (var i=0; i<data.providers.length; i++) {
+      var e = data.providers[i];
+      providers.append($("<option/>", {value: e}).text(e));
     }
     form.append($("<span/>").append(
-      $("<label/>").text("engine:"),
-      engine));
+      $("<label/>").text("provider:"),
+      providers));
 
     form.append($("<span/>").append(
       $("<label/>").text("bytes:"),
@@ -63,10 +63,11 @@ class Chronostream {
     e.preventDefault();
 
     // make an Ajax request to start a test.
-    $.ajax({
-      url: '/tests/start?' + $('#perf').serialize()
+    $.post({
+      url: '/jobs/startPerf',
+      data: $('#perf').serialize()
     }).done(data => {
-      new Result(data.id, data.summary, $('#iterations').val() * $('#threads').val());
+      new PerfResult(data.id, data.summary, $('#iterations').val() * $('#threads').val());
     }).fail(err => {
       console.error(err);
       $('#error').text(err.responseJSON.message);
@@ -74,16 +75,16 @@ class Chronostream {
   }
 }
 
-class Result {
+class PerfResult {
   constructor(id, summary, scale) {
     this.id = id;
     this.summary = summary;
 
-    // insert result into page
+    // insert results into page
     this.result = $("<div/>");
     this.result.append($("<p/>").text(this.summary));
     this.result.append($("<div/>", {id: 'graph-'+this.id}));
-    this.result.append($("<div/>", {class: "error"}));
+    this.result.append($("<pre/>", {class: "error"}));
     this.result.append($("<div/>", {class: "status"}));
     $("#results").append(this.result);
 
@@ -123,11 +124,11 @@ class Result {
         .attr("class", "y axis")
         .call(this.yAxis)
         .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 6)
-        .attr("dy", ".71em")
-        .style("text-anchor", "end")
-        .text("foo");
+          .attr("transform", "rotate(-90)")
+          .attr("y", 6)
+          .attr("dy", ".71em")
+          .style("text-anchor", "end")
+          .text("ms");
 
     this.axis = svg.append("g")
         .attr("class", "x axis")
@@ -143,25 +144,26 @@ class Result {
 
     // load data
     this.done = false;
-    this.fetchResult();
+    this.fetch();
   }
 
-  fetchResult() {
+  fetch() {
     if (this.done) {
       this.result.find(".status").text("done, computing final results...");
-      new FinalResult(this);
+      new FinalPerfResult(this);
       return;
     }
 
     // get more data
     $.ajax({
-      url: '/tests/results?id=' + this.id + '&offset=' + this.counter + '&count=50000'
+      url: '/jobs/perfResult?id=' + this.id + '&offset=' + this.counter + '&count=50000'
     }).done(data => {
       if (data.exception) {
         console.error(data.exception);
         this.result.find(".error").text(data.exception);
+        this.done = true;
       }
-      if (data.total > 0 && this.counter == data.total) {
+      if (this.counter == data.total) {
         this.done = true;
       }
 
@@ -183,7 +185,7 @@ class Result {
       this.x.domain([l, l + this.scaleX - 1]);
       d3.selectAll("g.x.axis").call(this.xAxis);
       this.p.attr("d", this.line);
-      this.fetchResult();
+      this.fetch();
     }).fail(err => {
       console.error(err);
       this.result.find(".error").text(err.responseJSON.message);
@@ -191,7 +193,7 @@ class Result {
   }
 }
 
-class FinalResult {
+class FinalPerfResult {
   constructor(parent) {
     var latencies = [];
     var start = parent.rawData[0].startTime;
@@ -252,9 +254,9 @@ function debugFake() {
   p = {};
   p.rawData = blah;
   p.result = $('#results');
-  return new FinalResult(p);
+  return new FinalPerfResult(p);
 }
 //setTimeout(debugFake, 100);
 
 var chronostream = new Chronostream();
-window.addEventListener('load', _ => chronostream.load());
+window.addEventListener('load', _ => chronostream.loadPerf());

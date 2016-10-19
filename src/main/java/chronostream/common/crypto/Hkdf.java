@@ -1,4 +1,4 @@
-package chronostream.core;
+package chronostream.common.crypto;
 
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;

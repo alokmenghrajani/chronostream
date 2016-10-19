@@ -1,9 +1,9 @@
 package chronostream;
 
-import chronostream.core.Crypto;
-import chronostream.core.CryptoConfig;
+import chronostream.common.crypto.Crypto;
+import chronostream.common.crypto.CryptoConfig;
 import chronostream.resources.Dev;
-import chronostream.resources.Tests;
+import chronostream.resources.Jobs;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
@@ -44,6 +44,6 @@ public class App extends Application<Config> {
         }
 
         environment.jersey().register(new Dev());
-        environment.jersey().register(new Tests(crypto));
+        environment.jersey().register(new Jobs(crypto));
     }
 }

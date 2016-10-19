@@ -1,6 +1,6 @@
 package chronostream;
 
-import chronostream.core.CryptoConfig;
+import chronostream.common.crypto.CryptoConfig;
 import io.dropwizard.Configuration;
 import java.util.List;
 
