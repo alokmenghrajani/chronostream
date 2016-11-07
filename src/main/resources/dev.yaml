@@ -11,3 +11,4 @@ crypto:
     password: "testtest2"
     keyStore: "jce.jceks"
     allowsExport: false
+correctnessThreads: 10

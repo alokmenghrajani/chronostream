@@ -11,7 +11,7 @@ public class CorrectnessJob extends AbstractJob<CorrectnessJobConfig, Correctnes
   }
 
   @Override protected CorrectnessJobResult initResult() {
-    return new CorrectnessJobResult(config.iterations * config.threads);
+    return new CorrectnessJobResult();
   }
 
   @Override protected Runnable initTask() {

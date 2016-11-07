@@ -37,10 +37,15 @@ import static java.lang.String.format;
 public class Jobs {
   private final AtomicInteger testIds = new AtomicInteger();
   private Map<Integer, AbstractJobResult> testResultMap = new ConcurrentHashMap<>();
+  private CorrectnessJobResult correctnessJobResult;
   Map<String, Crypto> crypto;
 
-  public Jobs(Map<String, Crypto> crypto) {
+  public Jobs(Map<String, Crypto> crypto, int correctnessThreads) throws Exception {
     this.crypto = crypto;
+    CorrectnessJobConfig correctnessJobConfig = new CorrectnessJobConfig(new ArrayList<>(crypto.values()), correctnessThreads);
+    CorrectnessJob job = new CorrectnessJob(correctnessJobConfig);
+    correctnessJobResult = job.getResult();
+    new Thread(job).start();
   }
 
   /**
@@ -57,43 +62,6 @@ public class Jobs {
     r.providers = crypto.keySet();
 
     return r;
-  }
-
-  /**
-   * Kicks off a correctness job run.
-   *
-   * For HKDF, we ensure every engine gives the same output.
-   * For encryption/decryption, we ensure that every engine's encryption can be decrypted
-   * with every engine's decryption.
-   *
-   * @param iterations
-   * @param threads
-   */
-  @POST
-  @Timed
-  @Path("startCorrectness")
-  public StartResponse startCorrectness(
-      @FormParam("iterations") int iterations,
-      @FormParam("threads") int threads) {
-
-    try {
-      // start job
-      StartResponse r = new StartResponse();
-      r.id = testIds.incrementAndGet();
-      r.summary = format("correctness (%d iterations, %d threads)", iterations, threads);
-
-      CorrectnessJobConfig config = new CorrectnessJobConfig(new ArrayList<>(crypto.values()), iterations, threads);
-      CorrectnessJob job = new CorrectnessJob(config);
-      testResultMap.put(r.id, job.getResult());
-      new Thread(job).start();
-
-      return r;
-    } catch (Exception e) {
-      Writer writer = new StringWriter();
-      PrintWriter printWriter = new PrintWriter(writer);
-      e.printStackTrace(printWriter);
-      throw new WebApplicationException(writer.toString());
-    }
   }
 
   @POST
@@ -132,11 +100,8 @@ public class Jobs {
   @GET
   @Timed
   @Path("correctnessResult")
-  public CorrectnessJobResult.Response correctnessResult(@QueryParam("id") int id) throws Exception {
-    Validate.isTrue(id > 0);
-
-    CorrectnessJobResult r = (CorrectnessJobResult) testResultMap.get(id);
-    return r.getResults();
+  public CorrectnessJobResult.Response correctnessResult() throws Exception {
+    return correctnessJobResult.getResults();
   }
 
   @GET

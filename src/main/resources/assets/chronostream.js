@@ -52,23 +52,6 @@ class Chronostream {
     form.append($("<span/>").append(button));
 
     $("#perf").replaceWith(form);
-
-    $("#correctness button").click(e => this.startCorrectnessJob(e));
-  }
-
-  startCorrectnessJob(e) {
-    e.preventDefault();
-
-    // make an Ajax request to start a test.
-    $.post({
-      url: '/jobs/startCorrectness',
-      data: $('#correctness').serialize()
-    }).done(data => {
-      new CorrectnessResult(data.id, data.summary)
-    }).fail(err => {
-      console.error(err);
-      $('#error').text(err.responseJSON.message);
-    });
   }
 
   /**
@@ -93,10 +76,7 @@ class Chronostream {
 }
 
 class CorrectnessResult {
-  constructor(id, summary) {
-    this.id = id;
-    this.summary = summary;
-
+  constructor() {
     // insert results into page
     this.result = $("<div/>");
     this.result.append($("<p/>").text(this.summary));
@@ -118,7 +98,7 @@ class CorrectnessResult {
 
     // get more data
     $.ajax({
-      url: '/jobs/correctnessResult?id=' + this.id
+      url: '/jobs/correctnessResult'
     }).done(data => {
       if (data.exception) {
         console.error(data.exception);
@@ -143,14 +123,15 @@ class CorrectnessResult {
         new_content.append(d);
         new_content.append($("<br/>"));
       }
+
+      var progress = $("<div/>");
+      progress.text("iterations: " + data.completed);
+      new_content.append(progress);
+
       this.div.replaceWith(new_content);
       this.div = new_content;
 
-      var progress = $("<div/>", {class: "progress"})
-      progress.append($("<span/>").css("width", (data.completed / data.total * 100)+"%"));
-      new_content.append(progress);
-
-      setTimeout(() => this.fetch(), 100);
+    setTimeout(() => this.fetch(), 1000);
     }).fail(err => {
       console.error(err);
       this.result.find(".error").text(err.responseJSON.message);
@@ -343,3 +324,4 @@ function debugFake() {
 
 var chronostream = new Chronostream();
 window.addEventListener('load', _ => chronostream.loadPerf());
+window.addEventListener('load', _ => new CorrectnessResult());

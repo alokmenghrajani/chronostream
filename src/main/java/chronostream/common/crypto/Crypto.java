@@ -163,10 +163,6 @@ public class Crypto {
 
   public byte[] doCrypto(CryptoPrimitive primitive, byte[] buffer, byte[] iv) throws Exception {
     switch (primitive) {
-      case AES128_GCM_ENC:
-        return doAesGcmEncryption(buffer, iv);
-      case AES128_GCM_DEC:
-        return doAesGcmDecryption(buffer, iv);
       case AES256_CBC_ENC:
         return doAesCbcEncryption(buffer, iv);
       case AES256_CBC_DEC:
@@ -181,22 +177,10 @@ public class Crypto {
     throw new Exception("unreachable");
   }
 
+  // HmacSha256
+
   public byte[] doHKDF(byte[] bytes) throws Exception {
     return hkdf.expand(hmacKey, bytes, 16);
-  }
-
-  // AES GCM
-
-  public byte[] doAesGcmEncryption(byte[] bytes, byte[] iv) throws Exception {
-    Cipher cipher = Cipher.getInstance("AES/GCM/Nopadding", provider);
-    cipher.init(Cipher.ENCRYPT_MODE, aes128Key, new IvParameterSpec(iv));
-    return cipher.doFinal(bytes);
-  }
-
-  public byte[] doAesGcmDecryption(byte[] bytes, byte[] iv) throws Exception {
-    Cipher cipher = Cipher.getInstance("AES/GCM/Nopadding", provider);
-    cipher.init(Cipher.DECRYPT_MODE, aes128Key, new IvParameterSpec(iv));
-    return cipher.doFinal(bytes);
   }
 
   // AES CBC

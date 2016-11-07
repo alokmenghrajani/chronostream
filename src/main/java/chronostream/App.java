@@ -8,11 +8,8 @@ import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import static java.lang.String.format;
 
 public class App extends Application<Config> {
 
@@ -32,7 +29,7 @@ public class App extends Application<Config> {
 
     @Override
     public void run(final Config configuration,
-                    final Environment environment) {
+                    final Environment environment) throws Exception {
 
         // Initialize the crypto stuff
         Map<String, Crypto> crypto = new LinkedHashMap<>();
@@ -45,6 +42,6 @@ public class App extends Application<Config> {
         }
 
         environment.jersey().register(new Dev());
-        environment.jersey().register(new Jobs(crypto));
+        environment.jersey().register(new Jobs(crypto, configuration.correctnessThreads));
     }
 }

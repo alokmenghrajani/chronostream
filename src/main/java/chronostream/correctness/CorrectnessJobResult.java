@@ -3,15 +3,11 @@ package chronostream.correctness;
 import chronostream.common.core.AbstractJobResult;
 import chronostream.common.crypto.Crypto;
 import chronostream.common.crypto.CryptoPrimitive;
-import chronostream.perf.PerfJobResult;
 import com.google.common.collect.Maps;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
@@ -22,8 +18,8 @@ public class CorrectnessJobResult extends AbstractJobResult {
   final Map<CryptoPrimitive, Test> results;
 
 
-  public CorrectnessJobResult(int total) {
-    super(total);
+  public CorrectnessJobResult() {
+    super(0);
     results = Maps.newHashMap();
   }
 
@@ -53,7 +49,6 @@ public class CorrectnessJobResult extends AbstractJobResult {
   public Response getResults() throws Exception {
     Response r = new Response();
     synchronized (results) {
-      r.total = total;
       r.completed = completed;
       if (exception == null) {
         r.exception = "";
@@ -95,6 +90,5 @@ public class CorrectnessJobResult extends AbstractJobResult {
     public Map<String, Map<String, Test.Result>> results = Maps.newHashMap();
     public String exception;
     public int completed;
-    public int total;
   }
 }

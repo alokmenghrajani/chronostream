@@ -4,7 +4,7 @@ import chronostream.common.crypto.Crypto;
 import java.util.Arrays;
 import java.util.Random;
 
-import static chronostream.common.crypto.CryptoPrimitive.AES128_GCM_ENC;
+import static chronostream.common.crypto.CryptoPrimitive.AES256_CBC_ENC;
 import static chronostream.common.crypto.CryptoPrimitive.HKDF;
 import static chronostream.common.crypto.CryptoPrimitive.RSA_ENC;
 
@@ -22,7 +22,7 @@ public class CorrectnessJobTask implements Runnable {
 
   public void run() {
     try {
-      for (int i=0; i<config.iterations; i++) {
+      while (true) {
         int size = (new Random().nextInt() & 0x0fff) + 1;
         byte[] buffer = new byte[size];
         new Random().nextBytes(buffer);
@@ -38,10 +38,10 @@ public class CorrectnessJobTask implements Runnable {
         for (Crypto c1 : this.config.crypto) {
           byte[] iv = new byte[16];
           new Random().nextBytes(iv);
-          byte[] t = c1.doAesGcmEncryption(buffer, iv);
+          byte[] t = c1.doAesCbcEncryption(buffer, iv);
           for (Crypto c2 : this.config.crypto) {
-            byte[] r = c2.doAesGcmDecryption(t, iv);
-            result.addResult(AES128_GCM_ENC, c1, c2, Arrays.equals(buffer, r));
+            byte[] r = c2.doAesCbcDecryption(t, iv);
+            result.addResult(AES256_CBC_ENC, c1, c2, Arrays.equals(buffer, r));
           }
         }
 
@@ -59,6 +59,9 @@ public class CorrectnessJobTask implements Runnable {
 
         // record that we went through one iteration
         result.nextIteration();
+
+        // Sleep for a bit
+        Thread.sleep(100);
       }
     } catch (Exception e) {
       e.printStackTrace();
