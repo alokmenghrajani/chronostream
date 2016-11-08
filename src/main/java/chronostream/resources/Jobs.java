@@ -1,70 +1,47 @@
 package chronostream.resources;
 
-import chronostream.common.core.AbstractJobResult;
-import chronostream.common.crypto.Crypto;
-import chronostream.common.crypto.CryptoPrimitive;
 import chronostream.correctness.CorrectnessJob;
-import chronostream.correctness.CorrectnessJobConfig;
 import chronostream.correctness.CorrectnessJobResult;
 import chronostream.perf.PerfJob;
-import chronostream.perf.PerfJobConfig;
 import chronostream.perf.PerfJobResult;
 import com.codahale.metrics.annotation.Timed;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang3.Validate;
-
-import static java.lang.String.format;
 
 @Path("/jobs")
 @Produces(MediaType.APPLICATION_JSON)
 public class Jobs {
-  private final AtomicInteger testIds = new AtomicInteger();
-  private Map<Integer, AbstractJobResult> testResultMap = new ConcurrentHashMap<>();
-  private CorrectnessJobResult correctnessJobResult;
-  Map<String, Crypto> crypto;
+  PerfJob perfJob;
+  CorrectnessJob correctnessJob;
 
-  public Jobs(Map<String, Crypto> crypto, int correctnessThreads) throws Exception {
-    this.crypto = crypto;
-    CorrectnessJobConfig correctnessJobConfig = new CorrectnessJobConfig(new ArrayList<>(crypto.values()), correctnessThreads);
-    CorrectnessJob job = new CorrectnessJob(correctnessJobConfig);
-    correctnessJobResult = job.getResult();
-    new Thread(job).start();
+  public Jobs(PerfJob perfJob, CorrectnessJob correctnessJob) {
+    this.perfJob = perfJob;
+    this.correctnessJob = correctnessJob;
   }
 
-  /**
-   * Returns list of algorithms & providers. Used to dynamically populate the form which
-   * initiates tests.
-   */
-  @GET
-  @Timed
-  @Path("list")
-  public ListResponse list() {
-    ListResponse r = new ListResponse();
-    r.primitives = new LinkedHashMap<>(); // Use order preserving map
-    Arrays.stream(CryptoPrimitive.values()).forEach(e -> r.primitives.put(e.toString(), e.name));
-    r.providers = crypto.keySet();
+  ///**
+  // * Returns list of algorithms & providers. Used to dynamically populate the form which
+  // * initiates tests.
+  // */
+  //@GET
+  //@Timed
+  //@Path("list")
+  //public ListResponse list() {
+  //  ListResponse r = new ListResponse();
+  //  r.primitives = new LinkedHashMap<>(); // Use order preserving map
+  //  Arrays.stream(CryptoPrimitive.values()).forEach(e -> r.primitives.put(e.toString(), e.name));
+  //  r.providers = crypto.keySet();
+  //
+  //  return r;
+  //}
 
-    return r;
-  }
-
-  @POST
+/*  @POST
   @Timed
   @Path("startPerf")
   public StartResponse startPerf(
@@ -75,12 +52,12 @@ public class Jobs {
       @FormParam("threads") int threads) {
 
     try {
-      Crypto crypto = this.crypto.get(provider);
+      CryptoProvider crypto = this.crypto.get(provider);
       CryptoPrimitive primitive = CryptoPrimitive.valueOf(primitiveName);
 
       // start test
       StartResponse r = new StartResponse();
-      r.id = testIds.incrementAndGet();
+      //r.id = testIds.incrementAndGet();
       r.summary = format("perf %s using %s (%d bytes, %d iterations, %d threads)",
           primitive.name, provider, bytes, iterations, threads);
 
@@ -96,12 +73,13 @@ public class Jobs {
       throw new WebApplicationException(writer.toString());
     }
   }
+*/
 
   @GET
   @Timed
   @Path("correctnessResult")
   public CorrectnessJobResult.Response correctnessResult() throws Exception {
-    return correctnessJobResult.getResults();
+    return correctnessJob.getResult().getResponse();
   }
 
   @GET
@@ -110,7 +88,7 @@ public class Jobs {
   public PerfJobResult.Response perfResults(@QueryParam("id") int id, @QueryParam("offset") int offset, @QueryParam("count") int count) {
     Validate.isTrue(id > 0);
 
-    PerfJobResult r = (PerfJobResult) testResultMap.get(id);
+    PerfJobResult r = null; //testResultMap.get(id);
     return r.getResult(offset, count);
   }
 

@@ -1,5 +1,8 @@
 package chronostream.common.core;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Objects;
 
 /**
@@ -7,13 +10,9 @@ import java.util.Objects;
  *  tracking and returning results.
  */
 public class AbstractJobResult {
-  protected int total;
-  protected int completed;
-  protected Exception exception;
+  private Exception exception;
 
-  public AbstractJobResult(int total) {
-    this.total = total;
-    completed = 0;
+  public AbstractJobResult() {
     exception = null;
   }
 
@@ -23,6 +22,17 @@ public class AbstractJobResult {
     if (exception == null) {
       // for now, we only record the first exception.
       exception = e;
+    }
+  }
+
+  public String getException() {
+    if (exception == null) {
+      return "";
+    } else {
+      Writer writer = new StringWriter();
+      PrintWriter printWriter = new PrintWriter(writer);
+      exception.printStackTrace(printWriter);
+      return writer.toString();
     }
   }
 }

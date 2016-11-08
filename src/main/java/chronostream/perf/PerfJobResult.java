@@ -1,21 +1,29 @@
 package chronostream.perf;
 
 import chronostream.common.core.AbstractJobResult;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Tracks the results of performance tests.
  */
 public class PerfJobResult extends AbstractJobResult {
-  final private long[][] results;
+  private long[][] results = null;
+  private int total;
+  private int completed;
 
-  public PerfJobResult(int total) {
-    super(total);
+  public void prepare(int total) {
+    Objects.isNull(results);
     results = new long[2][total];
+    this.total = total;
+    completed = 0;
+  }
+
+  public void flush() {
+    // write results to disk
+
+    // reset results to null.
   }
 
   public void addResult(long start, long end) {
@@ -29,14 +37,7 @@ public class PerfJobResult extends AbstractJobResult {
   public Response getResult(int offset, int count) {
     Response r = new Response();
     r.startEndTimes = new ArrayList<>(count);
-    if (exception == null) {
-      r.exception = "";
-    } else {
-      Writer writer = new StringWriter();
-      PrintWriter printWriter = new PrintWriter(writer);
-      exception.printStackTrace(printWriter);
-      r.exception = writer.toString();
-    }
+    r.exception = getException();
     r.total = total;
     synchronized (results) {
       r.completed = completed;

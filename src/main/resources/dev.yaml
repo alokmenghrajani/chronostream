@@ -1,4 +1,4 @@
-crypto:
+cryptoProviders:
   - name: "BouncyCastle"
     storeType: "BKS"
     provider: "org.bouncycastle.jce.provider.BouncyCastleProvider"
@@ -11,4 +11,63 @@ crypto:
     password: "testtest2"
     keyStore: "jce.jceks"
     allowsExport: false
-correctnessThreads: 10
+
+perfTest:
+  defaultThreads: 1
+  defaultIterations: 10
+  tests:
+    - name: "Keywhiz"
+      primitive: HKDF
+      keySize: 128
+      minDataSize: 3
+      maxDataSize: 151
+    - name: "RSA 2048 encryption"
+      primitive: RSA_ENC
+      keySize: 2048
+      minDataSize: 10
+      maxDataSize: 64
+    - name: "AES 256 decryption"
+      primitive: AES_CBC_DEC
+      keySize: 256
+      minDataSize: 100
+      maxDataSize: 200
+
+correctnessTest:
+  threads: 2
+  sleep: 100
+  tests:
+   - name: "HKDF 1"
+     primitive: HKDF
+     keySize: 256
+     minDataSize: 1
+     maxDataSize: 1000
+   - name: "HKDF 2"
+     primitive: HKDF
+     keySize: 128
+     minDataSize: 1
+     maxDataSize: 1000
+   - name: "AES 1"
+     primitive: AES_CBC_ENC
+     keySize: 128
+     minDataSize: 1
+     maxDataSize: 10000
+   - name: "AES 2"
+     primitive: AES_CBC_ENC
+     keySize: 256
+     minDataSize: 1
+     maxDataSize: 10000
+#   - name: "RSA 1"
+#     primitive: RSA_ENC
+#     keySize: 1024
+#     minDataSize: 10
+#     maxDataSize: 64
+#   - name: "RSA 2"
+#     primitive: RSA_ENC
+#     keySize: 2048
+#     minDataSize: 10
+#     maxDataSize: 64
+#   - name: "RSA 3"
+#     primitive: RSA_ENC
+#     keySize: 4096
+#     minDataSize: 10
+#     maxDataSize: 64
