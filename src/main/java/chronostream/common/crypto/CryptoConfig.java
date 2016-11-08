@@ -1,27 +1,29 @@
 package chronostream.common.crypto;
 
-import com.google.common.base.MoreObjects;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.auto.value.AutoValue;
 
-public class CryptoConfig {
-  public String name;
-  public String storeType;
-  public String provider;
-  public String password;
-  public String keyStore;
-  public boolean allowsExport;
+@AutoValue
+abstract public class CryptoConfig {
+  abstract public String name();
+  abstract public String storeType();
+  abstract public String provider();
+  abstract public String password();
+  abstract public String keyStore();
+  abstract public boolean allowsExport();
 
-  public char[] pass() {
-    return password.toCharArray();
+  @JsonCreator @SuppressWarnings("unused")
+  static CryptoConfig create(@JsonProperty("name") String name,
+      @JsonProperty("storeType") String storeType,
+      @JsonProperty("provider") String provider,
+      @JsonProperty("password") String password,
+      @JsonProperty("keyStore") String keyStore,
+      @JsonProperty("allowsExport") boolean allowsExport) {
+    return new AutoValue_CryptoConfig(name, storeType, provider, password, keyStore, allowsExport);
   }
 
-  @Override public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("name", name)
-        .add("storeType", storeType)
-        .add("provider", provider)
-        .add("password", password)
-        .add("keyStore", keyStore)
-        .add("allowsExport", allowsExport)
-        .toString();
+  public char[] pass() {
+    return password().toCharArray();
   }
 }

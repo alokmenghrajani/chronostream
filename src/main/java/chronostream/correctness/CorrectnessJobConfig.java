@@ -18,7 +18,7 @@ public class CorrectnessJobConfig extends AbstractJobConfig {
     // find a crypto which allows exporting keys
     Crypto exportFrom = null;
     for (Crypto c : crypto) {
-      if (c.config.allowsExport) {
+      if (c.config.allowsExport()) {
         exportFrom = c;
         break;
       }

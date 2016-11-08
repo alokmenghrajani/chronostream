@@ -39,10 +39,10 @@ public class Crypto {
     this.config = config;
     System.out.println(format("Initializing: %s", config));
 
-    provider = (Provider)(Class.forName(config.provider).newInstance());
+    provider = (Provider)(Class.forName(config.provider()).newInstance());
     Security.addProvider(provider);
 
-    KeyStore keyStore = KeyStore.getInstance(config.storeType, provider);
+    KeyStore keyStore = KeyStore.getInstance(config.storeType(), provider);
 
     String hmacAlg = "HmacSHA256";
     if (provider.getClass().getName().equals("com.safenetinc.luna.provider.LunaProvider")) {
@@ -51,7 +51,7 @@ public class Crypto {
       // We don't want to depend on Luna's provider jar, so we use reflection.
       Class slotManagerClass = Class.forName("com.safenetinc.luna.LunaSlotManager");
       Object slotManager = slotManagerClass.getMethod("getInstance", null).invoke(null, null);
-      slotManagerClass.getMethod("login", String.class).invoke(slotManager, config.password);
+      slotManagerClass.getMethod("login", String.class).invoke(slotManager, config.password());
 
       // Luna has a minor quirk, we have to create the hmac key as HmacSHA1.
       hmacAlg = "HmacSHA1";
@@ -83,7 +83,7 @@ public class Crypto {
     // create AES keys
     Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
     int maxAllowedKeyLength = aesCipher.getMaxAllowedKeyLength("AES/CBC/PKCS5Padding");
-    System.out.println(format("Provider: %s, maxAllowedKeyLength: %d", config.name, maxAllowedKeyLength));
+    System.out.println(format("Provider: %s, maxAllowedKeyLength: %d", config.name(), maxAllowedKeyLength));
 
     keyGen = KeyGenerator.getInstance("AES", provider);
     keyGen.init(128);
@@ -112,7 +112,7 @@ public class Crypto {
     }
 
     // save the keystore
-    keyStore.store(new FileOutputStream(config.keyStore), config.pass());
+    keyStore.store(new FileOutputStream(config.keyStore()), config.pass());
   }
 
   public X509Certificate generateCertificate(KeyPair keyPair) throws Exception {
@@ -138,7 +138,7 @@ public class Crypto {
     System.out.println(format("re-initializing: %s", config));
 
     // create Provider
-    provider = (Provider)(Class.forName(config.provider).newInstance());
+    provider = (Provider)(Class.forName(config.provider()).newInstance());
     hkdf = new Hkdf(provider);
 
     String hmacAlg = "HmacSHA256";
@@ -148,7 +148,7 @@ public class Crypto {
       // We don't want to depend on Luna's provider jar, so we use reflection.
       Class slotManagerClass = Class.forName("com.safenetinc.luna.LunaSlotManager");
       Object slotManager = slotManagerClass.getMethod("getInstance", null).invoke(null, null);
-      slotManagerClass.getMethod("login", String.class).invoke(slotManager, config.password);
+      slotManagerClass.getMethod("login", String.class).invoke(slotManager, config.password());
 
       // Luna has a minor quirk, we have to create the hmac key as HmacSHA1.
       hmacAlg = "HmacSHA1";

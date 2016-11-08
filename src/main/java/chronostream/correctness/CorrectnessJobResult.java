@@ -63,10 +63,10 @@ public class CorrectnessJobResult extends AbstractJobResult {
         for (Map.Entry<Pair<Crypto, Crypto>, Test.Result> entry2 : entry.getValue().result.entrySet()) {
           String key;
           if (entry.getKey().equals(CryptoPrimitive.HKDF)) {
-            key = String.format("%s", entry2.getKey().getLeft().config.name);
+            key = String.format("%s", entry2.getKey().getLeft().config.name());
           } else {
-            key = String.format("%s -> %s", entry2.getKey().getLeft().config.name,
-                entry2.getKey().getRight().config.name);
+            key = String.format("%s -> %s", entry2.getKey().getLeft().config.name(),
+                entry2.getKey().getRight().config.name());
           }
           t.put(key, entry2.getValue());
         }

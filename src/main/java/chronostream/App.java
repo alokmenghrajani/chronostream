@@ -35,7 +35,7 @@ public class App extends Application<Config> {
         Map<String, Crypto> crypto = new LinkedHashMap<>();
         try {
             for (CryptoConfig config : configuration.crypto) {
-                crypto.put(config.name, new Crypto(config));
+                crypto.put(config.name(), new Crypto(config));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
