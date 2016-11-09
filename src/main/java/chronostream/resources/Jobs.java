@@ -89,8 +89,11 @@ public class Jobs {
   public PerfJobResult.Response perfResults(@QueryParam("id") int id, @QueryParam("offset") int offset, @QueryParam("count") int count) {
     Validate.isTrue(id > 0);
 
-    PerfJobResult r = null; //testResultMap.get(id);
-    return r.getResult(offset, count);
+    PerfJobResult r = perfJob.getResult(id);
+    if (r != null) {
+      return r.getResponse(offset, count);
+    }
+    return null;
   }
 
   public class ListResponse {

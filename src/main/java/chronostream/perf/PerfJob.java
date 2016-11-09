@@ -38,6 +38,10 @@ public class PerfJob implements Runnable {
     ps = new PrintStream(new FileOutputStream(String.format("%s.log", now.format(ISO_LOCAL_DATE_TIME))));
   }
 
+  public PerfJobResult getResult(int id) {
+    return results.get(id);
+  }
+
   public void run() {
     int id = 0;
     while (true) {
@@ -51,10 +55,10 @@ public class PerfJob implements Runnable {
             iterations,
             n_threads * iterations,
             ps);
-        results.put(id, result);
-        if (id > 5) {
-          results.remove(id-5);
+        if (id < 5) {
+          results.put(id, result);
         }
+        //todo: results.remove(id-5) if id>5;
 
         // Spin up the dynamically configured number of threads
         Thread[] threads = new Thread[n_threads];

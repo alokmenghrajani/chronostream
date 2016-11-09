@@ -70,8 +70,10 @@ public class PerfJobResult {
     exception.setException(e);
   }
 
-  public Response getResult(int offset, int count) {
+  public Response getResponse(int offset, int count) {
     Response r = new Response();
+    r.description = String.format("%s with %d threads and %d iterations",
+        job, threads, iterations);
     r.startEndTimes = new ArrayList<>(count);
     r.exception = exception.getException();
     r.total = total;
@@ -94,6 +96,7 @@ public class PerfJobResult {
         this.endTime = endTime;
       }
     }
+    public String description;
     public List<Test> startEndTimes;
     public String exception;
     public int completed;
