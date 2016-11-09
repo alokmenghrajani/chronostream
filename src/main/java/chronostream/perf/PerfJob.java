@@ -3,8 +3,15 @@ package chronostream.perf;
 import chronostream.Config;
 import chronostream.common.crypto.CryptoProvider;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
 /**
  * Schedules a perf job and gathers results.
@@ -13,7 +20,8 @@ public class PerfJob implements Runnable {
   private AtomicInteger threads;
   private AtomicInteger iterations;
   private List<PerfJobConfig> perfJobConfigs;
-  private PerfJobResult result;
+  private Map<Integer, PerfJobResult> results = Maps.newHashMap();
+  private PrintStream ps;
 
   public PerfJob(Config.PerfTest config, List<CryptoProvider> providers) throws Exception {
     this.threads = new AtomicInteger(config.defaultThreads());
@@ -26,15 +34,27 @@ public class PerfJob implements Runnable {
       }
     }
 
-    result = new PerfJobResult();
+    ZonedDateTime now = ZonedDateTime.now();
+    ps = new PrintStream(new FileOutputStream(String.format("%s.log", now.format(ISO_LOCAL_DATE_TIME))));
   }
 
   public void run() {
+    int id = 0;
     while (true) {
+      id++;
       for (PerfJobConfig test : perfJobConfigs) {
         int n_threads = this.threads.get();
         int iterations = this.iterations.get();
-        result.prepare(n_threads * iterations);
+        PerfJobResult result = new PerfJobResult(id,
+            String.format("%s-%s", test.config.name(), test.provider.getName()),
+            n_threads,
+            iterations,
+            n_threads * iterations,
+            ps);
+        results.put(id, result);
+        if (id > 5) {
+          results.remove(id-5);
+        }
 
         // Spin up the dynamically configured number of threads
         Thread[] threads = new Thread[n_threads];
@@ -48,13 +68,20 @@ public class PerfJob implements Runnable {
         for (int i = 0; i < n_threads; i++) {
           try {
             threads[i].join();
+            // for some reason, a few threads are enough to make my laptop fan spin, so sleep some.
+            Thread.sleep(100);
           } catch (InterruptedException e) {
             e.printStackTrace();
             result.recordException(e);
           }
         }
 
-        result.flush();
+        try {
+          result.write();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+
       }
     }
   }

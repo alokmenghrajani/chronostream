@@ -12,6 +12,7 @@ public class PerfJobConfig {
   protected Config.Test config;
   protected CryptoProvider provider;
   protected Object key;
+  volatile private byte[] deoptimization = new byte[100];
 
   public PerfJobConfig(Config.Test config, CryptoProvider provider) throws Exception {
     this.config = config;
@@ -46,26 +47,25 @@ public class PerfJobConfig {
     long start = System.nanoTime();
     switch (config.getPrimitive()) {
       case AES_CBC_ENC:
-        provider.doAesCbcEncryption(key, dataBuffer2, iv);
+        dataBuffer1 = provider.doAesCbcEncryption(key, dataBuffer2, iv);
         break;
       case AES_CBC_DEC:
-        provider.doAesCbcDecryption(key, dataBuffer2, iv);
+        dataBuffer1 = provider.doAesCbcDecryption(key, dataBuffer2, iv);
         break;
       case HKDF:
-        provider.doHKDF(key, dataBuffer2);
+        dataBuffer1 = provider.doHKDF(key, dataBuffer2);
         break;
       case RSA_ENC:
-        try {
-          provider.doRsaEncryption(key, dataBuffer2);
-        } catch (Exception e) {
-          throw e;
-        }
+        dataBuffer1 = provider.doRsaEncryption(key, dataBuffer2);
         break;
       case RSA_DEC:
-        provider.doRsaDecryption(key, dataBuffer2);
+        dataBuffer1 = provider.doRsaDecryption(key, dataBuffer2);
         break;
     }
     long end = System.nanoTime();
+    for (int i=0; i<100 && i<dataBuffer1.length; i++) {
+      deoptimization[i] = dataBuffer1[i];
+    }
 
     result.addResult(start/1000000, end/1000000);
   }

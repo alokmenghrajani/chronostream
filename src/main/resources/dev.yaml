@@ -21,16 +21,16 @@ perfTest:
       keySize: 128
       minDataSize: 3
       maxDataSize: 151
-    - name: "RSA 2048 encryption"
-      primitive: RSA_ENC
-      keySize: 2048
-      minDataSize: 10
-      maxDataSize: 64
-    - name: "AES 256 decryption"
-      primitive: AES_CBC_DEC
-      keySize: 256
-      minDataSize: 100
-      maxDataSize: 200
+#    - name: "RSA 2048 encryption"
+#      primitive: RSA_ENC
+#      keySize: 2048
+#      minDataSize: 10
+#      maxDataSize: 64
+#    - name: "AES 256 decryption"
+#      primitive: AES_CBC_DEC
+#      keySize: 256
+#      minDataSize: 100
+#      maxDataSize: 200
 
 correctnessTest:
   threads: 1
