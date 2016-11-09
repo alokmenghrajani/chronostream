@@ -32,11 +32,12 @@ public class CorrectnessJob implements Runnable {
     try {
       // create a fixed set of threads, which run the correctness jobs forever
       for (int i=0; i<threads; i++) {
-        new Thread(new CorrectnessJobTask(config, sleep, result)).start();
+        Thread t = new Thread(new CorrectnessJobTask(config, sleep, result));
+        t.setName(String.format("correctnessJob-%d", i));
+        t.start();
       }
     } catch (Exception e) {
-      System.out.println(e);
-      result.recordException(e);
+      e.printStackTrace();
     }
   }
 }

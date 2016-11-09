@@ -13,8 +13,8 @@ cryptoProviders:
     allowsExport: false
 
 perfTest:
-  defaultThreads: 1
-  defaultIterations: 10
+  defaultThreads: 10
+  defaultIterations: 10000
   tests:
     - name: "Keywhiz"
       primitive: HKDF
@@ -33,8 +33,8 @@ perfTest:
       maxDataSize: 200
 
 correctnessTest:
-  threads: 2
-  sleep: 100
+  threads: 1
+  sleep: 1000
   tests:
    - name: "HKDF 1"
      primitive: HKDF

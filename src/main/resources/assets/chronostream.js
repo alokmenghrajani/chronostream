@@ -79,59 +79,37 @@ class CorrectnessResult {
   constructor() {
     // insert results into page
     this.result = $("<div/>");
-    this.result.append($("<p/>").text(this.summary));
-    this.div = $("<div/>");
-    this.result.append(this.div);
-    this.result.append($("<pre/>", {class: "error"}));
-    this.result.append($("<div/>", {class: "status"}));
     $("#results").append(this.result);
 
-    this.done = false;
     this.fetch();
   }
 
   fetch() {
-    if (this.done) {
-      this.result.find(".status").text("done.");
-      return;
-    }
-
     // get more data
     $.ajax({
       url: '/jobs/correctnessResult'
     }).done(data => {
-      if (data.exception) {
-        console.error(data.exception);
-        this.result.find(".error").text(data.exception);
-        this.done = true;
-      }
-      if (data.completed == data.total) {
-        this.done = true;
-      }
-
       var new_content = $("<div/>");
+      new_content.append($("<u/>").text("Correctness"));
+      var d = $("<div/>", {class: "correctnessResult"});
       for (var i in data.results) {
-        new_content.append($("<u/>").text(i));
-        var d = $("<div/>", {class: "correctnessResult"});
-        for (var j in data.results[i]) {
-          if (data.results[i][j].fail == 0) {
-            d.append($("<span/>", {class: "ok"}).text(j));
-          } else {
-            d.append($("<span/>", {class: "fail"}).text(j));
-          }
+        if (data.results[i] == "") {
+          d.append($("<span/>", {class: "ok"}).text(i + ": ok"));
+        } else {
+          d.append($("<span/>", {class: "fail"}).text(i + ": " + data.results[i]));
         }
-        new_content.append(d);
-        new_content.append($("<br/>"));
       }
+      d.append($("<br/>"));
+      new_content.append(d);
 
       var progress = $("<div/>");
       progress.text("iterations: " + data.completed);
       new_content.append(progress);
 
-      this.div.replaceWith(new_content);
-      this.div = new_content;
+      this.result.replaceWith(new_content);
+      this.result = new_content;
 
-    setTimeout(() => this.fetch(), 1000);
+      setTimeout(() => this.fetch(), 5000);
     }).fail(err => {
       console.error(err);
       this.result.find(".error").text(err.responseJSON.message);
@@ -323,5 +301,5 @@ function debugFake() {
 //setTimeout(debugFake, 100);
 
 var chronostream = new Chronostream();
-window.addEventListener('load', _ => chronostream.loadPerf());
+//window.addEventListener('load', _ => chronostream.loadPerf());
 window.addEventListener('load', _ => new CorrectnessResult());

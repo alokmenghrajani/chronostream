@@ -5,18 +5,14 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Objects;
 
-/**
- *  A job results contains a progress, exceptions. Subclasses are responsible for
- *  tracking and returning results.
- */
-public class AbstractJobResult {
+public final class ExceptionResult {
   private Exception exception;
 
-  public AbstractJobResult() {
+  public ExceptionResult() {
     exception = null;
   }
 
-  public void recordException(Exception e) {
+  public void setException(Exception e) {
     Objects.requireNonNull(e);
 
     if (exception == null) {

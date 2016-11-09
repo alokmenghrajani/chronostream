@@ -20,10 +20,9 @@ public class CorrectnessJobTask implements Runnable {
     while (true) {
       for (CorrectnessJobConfig c : config) {
         try {
-          c.doCrypto();
+          c.doCrypto(result);
         } catch (Exception e) {
           e.printStackTrace();
-          result.recordException(e);
         }
       }
       try {

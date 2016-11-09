@@ -40,6 +40,7 @@ public class PerfJob implements Runnable {
         Thread[] threads = new Thread[n_threads];
         for (int i = 0; i < n_threads; i++) {
           threads[i] = new Thread(new PerfJobTask(test, iterations, result));
+          threads[i].setName(String.format("perfJob-%d", i));
           threads[i].start();
         }
 

@@ -1,20 +1,22 @@
 package chronostream.perf;
 
-import chronostream.common.core.AbstractJobResult;
+import chronostream.common.core.ExceptionResult;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Tracks the results of performance tests.
  */
-public class PerfJobResult extends AbstractJobResult {
+public class PerfJobResult {
   private long[][] results = null;
   private int total;
   private int completed;
+  private ExceptionResult exception = new ExceptionResult();
 
   public void prepare(int total) {
-    Objects.isNull(results);
+    if (results != null) {
+      throw new RuntimeException("results should have been cleared");
+    }
     results = new long[2][total];
     this.total = total;
     completed = 0;
@@ -34,10 +36,14 @@ public class PerfJobResult extends AbstractJobResult {
     }
   }
 
+  public void recordException(Exception e) {
+    exception.setException(e);
+  }
+
   public Response getResult(int offset, int count) {
     Response r = new Response();
     r.startEndTimes = new ArrayList<>(count);
-    r.exception = getException();
+    r.exception = exception.getException();
     r.total = total;
     synchronized (results) {
       r.completed = completed;

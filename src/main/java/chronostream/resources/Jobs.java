@@ -78,6 +78,7 @@ public class Jobs {
   @GET
   @Timed
   @Path("correctnessResult")
+  @Produces(MediaType.APPLICATION_JSON)
   public CorrectnessJobResult.Response correctnessResult() throws Exception {
     return correctnessJob.getResult().getResponse();
   }

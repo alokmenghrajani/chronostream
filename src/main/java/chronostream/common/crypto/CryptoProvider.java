@@ -2,14 +2,18 @@ package chronostream.common.crypto;
 
 import chronostream.Config;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.security.spec.RSAKeyGenParameterSpec;
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
@@ -103,7 +107,9 @@ public class CryptoProvider {
     return cipher.doFinal(bytes);
   }
 
-  public byte[] doAesCbcDecryption(Object key, byte[] bytes, byte[] iv) throws Exception {
+  public byte[] doAesCbcDecryption(Object key, byte[] bytes, byte[] iv) throws IllegalBlockSizeException,
+      BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
+      NoSuchAlgorithmException, NoSuchPaddingException{
     Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", provider);
     cipher.init(Cipher.DECRYPT_MODE, (SecretKey)key, new IvParameterSpec(iv));
     return cipher.doFinal(bytes);
@@ -120,7 +126,8 @@ public class CryptoProvider {
     return cipher.doFinal(bytes);
   }
 
-  public byte[] doRsaDecryption(Object keyPair, byte[] bytes) throws Exception {
+  public byte[] doRsaDecryption(Object keyPair, byte[] bytes) throws IllegalBlockSizeException,
+      BadPaddingException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
     if (provider.getClass().getName().equals("com.sun.crypto.provider.SunJCE")) {
       return bytes;
     }
