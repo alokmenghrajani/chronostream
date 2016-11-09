@@ -8,7 +8,7 @@ public class PerfJobTask implements Runnable {
   private PerfJobResult result;
   private int iterations;
 
-  PerfJobTask(PerfJobConfig test, int iterations, PerfJobResult result) {
+  public PerfJobTask(PerfJobConfig test, int iterations, PerfJobResult result) {
     this.test = test;
     this.iterations = iterations;
     this.result = result;
