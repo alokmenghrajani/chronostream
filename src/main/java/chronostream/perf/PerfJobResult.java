@@ -3,6 +3,7 @@ package chronostream.perf;
 import chronostream.common.core.ExceptionResult;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -31,12 +32,24 @@ public class PerfJobResult {
   }
 
   public void write() throws Exception {
-    // write summary to log
+    // latency: compute mean, p2, p98, q1, q2 and q3
+    long latency[] = new long[total];
+    for (int i=0; i<total; i++) {
+      latency[i] = results[1][i] - results[0][i];
+    }
+    Arrays.sort(latency);
+
     long sum = 0;
     for (int i=0; i<total; i++) {
-      sum += results[1][i] - results[0][i];
+      sum += latency[i];
     }
-    float avg = (float)sum / total;
+    float mean = (float)sum / total;
+
+    int p2_index = (int)(Math.round(total * 0.02));
+    int p98_index = (int)(Math.round(total * 0.98));
+    int q1_index = (int)(Math.round(total * 0.25));
+    int q2_index = (int)(Math.round(total * 0.5));
+    int q3_index = (int)(Math.round(total * 0.75));
 
     // throughput
     long min = results[0][0];
@@ -51,9 +64,13 @@ public class PerfJobResult {
     }
     float throughput = (float)total * 1000 / (max - min);
 
-    ps.println(String.format("%d, %s, %d, %d, %d, %f, %f", id, job, threads, iterations, total, avg, throughput));
+    // write summary to log
+    ps.println(String.format("%d, %s, %d, %d, %d, "
+            + "%d, %d, %f, %d, %d, %d, %f",
+        id, job, threads, iterations, total,
+        latency[p2_index], latency[p98_index], mean, latency[q1_index], latency[q2_index], latency[q3_index], throughput));
 
-//    for (int i=0; i<total; i++) {
+    //    for (int i=0; i<total; i++) {
 //      ps.println(String.format("%d,%d", results[0][i], results[1][i]));
 //    }
   }
