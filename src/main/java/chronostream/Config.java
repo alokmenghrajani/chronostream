@@ -44,14 +44,14 @@ public class Config extends Configuration {
   @AutoValue
   abstract static public class PerfTest {
     public abstract int defaultThreads();
-    public abstract int defaultIterations();
+    public abstract int defaultTotal();
     public abstract List<Test> tests();
 
     @JsonCreator @SuppressWarnings("unused")
     static PerfTest create(@JsonProperty("defaultThreads") int defaultThreads,
-        @JsonProperty("defaultIterations") int defaultIterations,
+        @JsonProperty("defaultTotal") int defaultTotal,
         @JsonProperty("tests") List<Test> tests) {
-      return new AutoValue_Config_PerfTest(defaultThreads, defaultIterations, tests);
+      return new AutoValue_Config_PerfTest(defaultThreads, defaultTotal, tests);
     }
   }
 

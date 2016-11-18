@@ -14,7 +14,7 @@ cryptoProviders:
 
 perfTest:
   defaultThreads: 10
-  defaultIterations: 10000
+  defaultTotal: 100000
   tests:
     - name: "Keywhiz"
       primitive: HKDF
