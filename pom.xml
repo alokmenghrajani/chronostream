@@ -19,7 +19,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <dropwizard.version>0.9.1</dropwizard.version>
+        <dropwizard.version>1.3.5</dropwizard.version>
         <mainClass>chronostream.App</mainClass>
     </properties>
 
